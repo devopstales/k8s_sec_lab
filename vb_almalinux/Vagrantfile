@@ -1,0 +1,49 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+IMAGE = "almalinux/8"
+IMAGE_VERSION = "v8.3.20210222"
+MEMORY = 6144
+CPU = 2
+IPBASE = "172.17.9."
+
+Vagrant.configure("2") do |config|
+  config.vm.box_check_update = false
+  config.timezone.value = :host
+  config.vbguest.auto_update = false
+
+  if Vagrant.has_plugin?("vagrant-cachier")
+    config.cache.scope = :box
+  end
+  if Vagrant.has_plugin?("vagrant-persistent-storage")
+    config.persistent_storage.enabled = true
+  end
+
+  config.vm.provider 'virtualbox' do |vb|
+   vb.customize [ "guestproperty", "set", :id, "/VirtualBox/GuestAdd/VBoxService/--timesync-set-threshold", 1000 ]
+   vb.customize ["modifyvm", :id, "--audio", "none"]
+   vb.linked_clone = true
+   vb.customize ["modifyvm", :id, "--vram", "8"]
+  end
+
+  config.vm.define "k8s" do |node|
+    node.vm.box = IMAGE
+#    node.vm.box_version = IMAGE_VERSION
+    node.vm.hostname = "k8s.mydomain.intra"
+    ip = "#{IPBASE}#{10}"
+    node.vm.network "private_network", ip: ip
+    node.vm.provider "virtualbox" do |vb|
+      vb.memory = MEMORY
+      vb.cpus = CPU
+      vb.name = "k8s"
+    end
+    # Add some disks.
+    if Vagrant.has_plugin?("vagrant-persistent-storage")
+      node.persistent_storage.location = "./disks/k8s-disk.vmdk"
+      node.persistent_storage.size = 102400
+      node.persistent_storage.use_lvm = false
+      #node.persistent_storage.partition = false
+      node.persistent_storage.mountpoint = '/var/lib/longhorn/'
+    end
+  end
+end
