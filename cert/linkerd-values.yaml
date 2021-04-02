@@ -1,0 +1,11 @@
+installNamespace: false
+global:
+  grafanaUrl: "prometheus-grafana.monitoring-system.svc.cluster.local:80"
+  prometheusUrl: "prometheus-kube-prometheus-prometheus.monitoring-system.svc.cluster.local:9090"
+grafana:
+  enabled: false
+prometheus:
+  enabled: false
+identity:
+  issuer:
+    scheme: "kubernetes.io/tls"
