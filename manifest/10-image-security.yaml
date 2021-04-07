@@ -8,7 +8,7 @@ apiVersion: helm.cattle.io/v1
 kind: HelmChart
 metadata:
   name: anchore-enginn
-  namespace: kube-system
+  namespace: securty-system
 spec:
   repo: "https://charts.anchore.io"
   chart: anchore-engine
@@ -40,7 +40,7 @@ apiVersion: helm.cattle.io/v1
 kind: HelmChart
 metadata:
   name: anchore-policy-validator
-  namespace: kube-system
+  namespace: securty-system
 spec:
   repo: "https://kubernetes-charts.banzaicloud.com"
   chart: anchore-policy-validator
