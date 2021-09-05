@@ -1,0 +1,10 @@
+---
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: kyverno-crd
+  namespace: kyverno-system
+spec:
+  chart: kyverno-crds
+  repo: "https://kyverno.github.io/kyverno/"
+  targetNamespace: kyverno-system

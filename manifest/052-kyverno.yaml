@@ -1,0 +1,14 @@
+---
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: kyverno
+  namespace: kyverno-system
+spec:
+  chart: kyverno
+  repo: "https://kyverno.github.io/kyverno/"
+  targetNamespace: kyverno-system
+  valuesContent: |-
+  serviceMonitor:
+    enabled: false
+    namespace: monitoring-system

@@ -1,0 +1,16 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: metallb
+  namespace: ingress-system
+spec:
+  repo: "https://metallb.github.io/metallb"
+  chart: metallb
+  targetNamespace: ingress-system
+  valuesContent: |-
+    configInline:
+      address-pools:
+        - name: default
+          protocol: layer2
+          addresses:
+          - 172.17.14.100-172.17.14.150

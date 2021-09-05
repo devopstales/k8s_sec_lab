@@ -1,0 +1,17 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: cert-manager
+  namespace: ingress-system
+spec:
+  repo: "https://charts.jetstack.io"
+  chart: cert-manager
+  targetNamespace: ingress-system
+  valuesContent: |-
+    installCRDs: true
+    clusterResourceNamespace: "ingress-system"
+    prometheus:
+      enabled: true
+#      servicemonitor:
+#        enabled: true
+#        namespace: "ingress-system"
