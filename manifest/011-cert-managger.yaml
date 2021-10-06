@@ -10,6 +10,10 @@ spec:
   valuesContent: |-
     installCRDs: true
     clusterResourceNamespace: "ingress-system"
+    resources:
+      requests:
+        cpu: 10m
+        memory: 32Mi
     prometheus:
       enabled: true
 #      servicemonitor:

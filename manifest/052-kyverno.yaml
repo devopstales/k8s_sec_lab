@@ -9,6 +9,19 @@ spec:
   repo: "https://kyverno.github.io/kyverno/"
   targetNamespace: kyverno-system
   valuesContent: |-
-  serviceMonitor:
-    enabled: false
-    namespace: monitoring-system
+    resources:
+      limits:
+        memory: 256Mi
+      requests:
+        cpu: 100m
+        memory: 50Mi
+    initResources:
+      limits:
+        cpu: 100m
+        memory: 256Mi
+      requests:
+        cpu: 10m
+        memory: 64Mi
+    serviceMonitor:
+      enabled: false
+      namespace: monitoring-system

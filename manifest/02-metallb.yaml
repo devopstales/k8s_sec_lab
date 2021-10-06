@@ -8,6 +8,16 @@ spec:
   chart: metallb
   targetNamespace: ingress-system
   valuesContent: |-
+    speaker:
+      resources:
+        limits:
+          cpu: 100m
+          memory: 100Mi
+    controller:
+      resources:
+        limits:
+          cpu: 100m
+          memory: 100Mi
     configInline:
       address-pools:
         - name: default

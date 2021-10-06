@@ -9,6 +9,18 @@ spec:
   targetNamespace: ingress-system
   valuesContent: |-
     controller:
+      ingressClassResource:
+        name: nginx
+        enabled: true
+        default: true
+        controllerValue: "k8s.io/ingress-nginx"
+      resources:
+        limits:
+          cpu: 100m
+          memory: 90Mi
+        requests:
+          cpu: 100m
+          memory: 90Mi
       metrics:
         port: 10254
         enabled: true

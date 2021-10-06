@@ -78,6 +78,12 @@ spec:
   repo: "https://releases.rancher.com/server-charts/latest"
   targetNamespace: cattle-system
   valuesContent: |-
+    resources:
+      limits:
+        memory: 256Mi
+      requests:
+        cpu: 100m
+        memory: 50Mi
     hostname: rancher.k8s.intra
     ingress:
       extraAnnotations:
