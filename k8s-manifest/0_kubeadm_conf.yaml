@@ -36,6 +36,7 @@ apiServer:
   - "172.17.9.10"
   - "10.0.2.15"
   extraArgs:
+    kubelet-certificate-authority: "/etc/kubernetes/pki/ca.crt"
     insecure-port: "0"
     profiling: "false"
     anonymous-auth: "false"
