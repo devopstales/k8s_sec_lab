@@ -19,9 +19,8 @@ kind: ClusterConfiguration
 clusterName: k8s-main
 kubernetesVersion: 1.22.2
 certificatesDir: /etc/kubernetes/pki
-# Other components of the current control plane only connect to the apiserver on the current host.
-# This is the expected behavior, see: https://github.com/kubernetes/kubeadm/issues/2271
-controlPlaneEndpoint: "127.0.0.1:6443"
+# OR Vip ip or external lb ip
+controlPlaneEndpoint: "172.17.9.10:6443"
 etcd:
   local:
     dataDir: /var/lib/etcd
@@ -92,8 +91,6 @@ apiVersion: kubeadm.k8s.io/v1beta3
 kind: JoinConfiguration
 discovery:
   bootstrapToken:
-    # Vip ip or external lb ip
-    apiServerEndpoint: "172.17.9.5:6443"
     token: "c2t0rj.cofbfnwwrb387890"
 nodeRegistration:
   criSocket: unix:///run/containerd/containerd.sock
