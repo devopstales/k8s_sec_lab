@@ -1,0 +1,266 @@
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata: 
+  name: add-created-by-label
+spec: 
+  background: false
+  rules:
+  - name: add-created-by-label
+    match:
+      resources:
+        kinds: 
+        - Namespace
+        - Pod
+        - Service
+        - ConfigMap
+        - Secret
+        - Deployment
+        - StatefulSet
+    mutate: 
+      patchStrategicMerge:
+        metadata:
+          labels:
+            created-by: "{{serviceAccountName}}"
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata: 
+  name: label-to-helm
+  annotations:
+    policies.kyverno.io/description: >-
+      Add label networking/allow-to-net: "true" to helm-controller pods to allow outgoing requests.
+spec:
+  rules:
+  - name: label-to-helm
+    match:
+      resources:
+        kinds:
+        - Pod
+        name: "helm-*"
+    mutate: 
+      patchStrategicMerge:
+        metadata:
+          labels:
+            networking/allow-to-net: "true"
+  - name: label-to-helm-job
+    match:
+      resources:
+        kinds:
+        - Job
+        name: "helm-*"
+    mutate: 
+      patchStrategicMerge:
+        spec:
+          template:
+            metadata:
+              labels:
+                networking/allow-to-net: "true"
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: add-networkpolicy
+  annotations:
+    policies.kyverno.io/title: Add Network Policy
+    policies.kyverno.io/category: Multi-Tenancy
+    policies.kyverno.io/subject: NetworkPolicy
+    policies.kyverno.io/description: >-
+      By default, Kubernetes allows communications across all Pods within a cluster.
+      The NetworkPolicy resource and a CNI plug-in that supports NetworkPolicy must be used to restrict
+      communications. A default NetworkPolicy should be configured for each Namespace to
+      default deny all ingress and egress traffic to the Pods in the Namespace. Application
+      teams can then configure additional NetworkPolicy resources to allow desired traffic
+      to application Pods from select sources. This policy will create a new NetworkPolicy resource
+      named `default-deny` which will deny all traffic anytime a new Namespace is created.
+spec:
+  rules:
+  - name: default-deny
+    match:
+      resources:
+        kinds:
+        - Namespace
+    exclude:
+      resources:
+        namespaces:
+        - kube-system
+        - ingress-system
+        - kyverno-system
+        - default
+        - kube-public
+        - longhorn-system
+    generate:
+      kind: NetworkPolicy
+      name: default-deny
+      namespace: "{{request.object.metadata.name}}"
+      synchronize: true
+      data:
+        spec:
+          # select all pods in the namespace
+          podSelector: {}
+          # deny all traffic
+          policyTypes:
+          - Ingress
+          - Egress
+  - name: allow-to-dns
+    match:
+      resources:
+        kinds:
+        - Namespace
+    exclude:
+      resources:
+        namespaces:
+        - kube-system
+        - ingress-system
+        - kyverno-system
+        - default
+        - kube-public
+        - longhorn-system
+    generate:
+      kind: NetworkPolicy
+      name: allow-to-dns
+      namespace: "{{request.object.metadata.name}}"
+      synchronize: true
+      data:
+        spec:
+          policyTypes:
+          - Egress
+          podSelector: {}
+          egress:
+          - to:
+            - namespaceSelector:
+                matchLabels:
+                  networking/namespace: kube-system
+              podSelector:
+                matchLabels:
+                  k8s-app: kube-dns
+            ports:
+            - protocol: TCP
+              port: 53
+            - protocol: UDP
+              port: 53
+  - name: allow-from-ingress
+    match:
+      resources:
+        kinds:
+        - Namespace
+    exclude:
+      resources:
+        namespaces:
+        - kube-system
+        - ingress-system
+        - kyverno-system
+        - default
+        - kube-public
+        - longhorn-system
+    generate:
+      kind: NetworkPolicy
+      name: allow-from-ingress
+      namespace: "{{request.object.metadata.name}}"
+      synchronize: true
+      data:
+        spec:
+          podSelector: {}
+          policyTypes:
+          - Ingress
+          ingress:
+          - from:
+            - namespaceSelector:
+                matchLabels:
+                  networking/namespace: ingress
+  - name: allow-to-net-from-helm-controller
+    match:
+      resources:
+        kinds:
+        - Namespace
+    exclude:
+      resources:
+        namespaces:
+        - kube-system
+        - ingress-system
+        - kyverno-system
+        - default
+        - kube-public
+        - longhorn-system
+    generate:
+      kind: NetworkPolicy
+      name: allow-to-net-from-helm-controller
+      namespace: "{{request.object.metadata.name}}"
+      synchronize: true
+      data:
+        spec:
+          podSelector:
+            matchLabels:
+              networking/allow-to-net: "true"
+          policyTypes:
+          - Egress
+          egress:
+          - {}
+#---
+#apiVersion: kyverno.io/v1
+#kind: ClusterPolicy
+#metadata:
+#  name: sync-secrets
+#  annotations:
+#    policies.kyverno.io/title: Sync Secrets
+#    policies.kyverno.io/category: Sample
+#    policies.kyverno.io/subject: Secret
+#    policies.kyverno.io/description: >-
+#      Secrets like registry credentials often need to exist in multiple
+#      Namespaces so Pods there have access. Manually duplicating those Secrets
+#      is time consuming and error prone. This policy will copy a
+#      Secret called `regcred` which exists in the `default` Namespace to
+#      new Namespaces when they are created. It will also push updates to
+#      the copied Secrets should the source Secret be changed.
+#spec:
+#  rules:
+#  - name: sync-image-pull-secret
+#    match:
+#      resources:
+#        kinds:
+#        - Namespace
+#    generate:
+#      kind: Secret
+#      name: regcred
+#      namespace: "{{request.object.metadata.name}}"
+#      synchronize: true
+#      clone:
+#        namespace: default
+#        name: regcred
+#---
+#apiVersion: kyverno.io/v1
+#kind: ClusterPolicy
+#metadata:
+#  name: add-imagepullsecrets-for-containers-and-initcontainers
+#  annotations:
+#    policies.kyverno.io/title: Add imagePullSecrets for Containers and InitContainers
+#    policies.kyverno.io/category: Sample
+#    policies.kyverno.io/subject: Pod
+#    policies.kyverno.io/minversion: 1.3.6
+#    policies.kyverno.io/description: >-
+#      Images coming from certain registries require authentication in order to pull them,
+#      and the kubelet uses this information in the form of an imagePullSecret to pull
+#      those images on behalf of your Pod. This policy searches for images coming from a
+#      registry called `corp.reg.com` referenced by either one of the containers or one 
+#      of the init containers and, if found, will mutate the Pod to add an
+#      imagePullSecret called `my-secret`.
+#spec:
+#  rules:
+#  - name: add-imagepullsecret
+#    match:
+#      resources:
+#        kinds:
+#        - Pod
+#    preconditions:
+#      any:
+#      - key: "corp.reg.com/*"
+#        operator: In
+#        value: "{{ images.initContainers.*.registry }}"
+#      - key: "corp.reg.com/*"          
+#        operator: In
+#        value: "{{ images.containers.*.registry }}"
+#    mutate:
+#      patchStrategicMerge:
+#        spec:
+#          imagePullSecrets:
+#          - name: regcred

@@ -1,0 +1,33 @@
+---
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: longhorn
+  namespace: longhorn-system
+spec:
+  repo: "https://charts.longhorn.io"
+  chart: longhorn
+  targetNamespace: longhorn-system
+  valuesContent: |-
+    defaultReplicaCount: 1
+    resources:
+      limits:
+        cpu: 100m
+        memory: 128Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+    persistence:
+      defaultClass: true
+      defaultFsType: ext4
+      defaultClassReplicaCount: 1
+    ingress:
+      enabled: true
+      host: longhorn.k8s.intra
+      tls: true
+      tlsSecret: longhorn.local-tls
+      annotations:
+        kubernetes.io/ingress.class: nginx
+        cert-manager.io/cluster-issuer: ca-issuer
+    enablePSP: true
+

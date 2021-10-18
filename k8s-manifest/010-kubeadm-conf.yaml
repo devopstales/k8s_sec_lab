@@ -21,8 +21,7 @@ kubernetesVersion: 1.22.2
 certificatesDir: /etc/kubernetes/pki
 # Other components of the current control plane only connect to the apiserver on the current host.
 # This is the expected behavior, see: https://github.com/kubernetes/kubeadm/issues/2271
-# controlPlaneEndpoint: "127.0.0.1:6443"
-controlPlaneEndpoint: "172.17.9.10:6443"
+controlPlaneEndpoint: "127.0.0.1:6443"
 etcd:
   local:
     dataDir: /var/lib/etcd
@@ -36,7 +35,10 @@ apiServer:
   - "172.17.9.10"
   - "10.0.2.15"
   extraArgs:
+    # force PodSecurityPolicy
+    enable-admission-plugins: "NodeRestriction,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,PodSecurityPolicy"
     kubelet-certificate-authority: "/etc/kubernetes/pki/ca.crt"
+    encryption-provider-config: "/etc/kubernetes/etcd-encription.yaml"
     insecure-port: "0"
     profiling: "false"
     anonymous-auth: "false"
@@ -44,14 +46,22 @@ apiServer:
     audit-log-maxbackup: "10"
     audit-log-maxsize: "100"
     audit-log-path: "/var/log/kube-audit/audit.log"
-    # The fraction of requests that will be closed gracefully(GOAWAY) to prevent
-    # HTTP/2 clients from getting stuck on a single apiserver.
-    goaway-chance: "0.001"
+    audit-policy-file: "/etc/kubernetes/audit-policy.yaml"
+    service-node-port-range: "30000-50000"
   extraVolumes:
+  - name: "audit-config"
+    hostPath: "/etc/kubernetes/audit-policy.yaml"
+    mountPath: "/etc/kubernetes/audit-policy.yaml"
+    readOnly: true
+    pathType: "File"
   - name: "audit-log"
     hostPath: "/var/log/kube-audit"
     mountPath: "/var/log/kube-audit"
     pathType: "DirectoryOrCreate"
+  - name: "etc-kubernetes-etcd-enc"
+    hostPath: "/etc/kubernetes/etcd-encription.yaml"
+    mountPath: "/etc/kubernetes/etcd-encription.yaml"
+    readOnly: true
 scheduler:
   extraArgs:
     profiling: "false"
@@ -63,13 +73,38 @@ dns: {}
 apiVersion: kubelet.config.k8s.io/v1beta1
 kind: KubeletConfiguration
 enableServer: true
+failSwapOn: false
+cgroupDriver: "systemd"
+serverTLSBootstrap: true
+rotateCertificates: true
 featureGates:
+# before 1.21
+#    RotateKubeletClientCertificate: true
     RotateKubeletServerCertificate: true
+# after 1.22
     SeccompDefault: true
 seccompDefault: true
+##
 protectKernelDefaults: true
 readOnlyPort: 0
+---
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: JoinConfiguration
+discovery:
+  bootstrapToken:
+    # Vip ip or external lb ip
+    apiServerEndpoint: "172.17.9.5:6443"
+    token: "c2t0rj.cofbfnwwrb387890"
+nodeRegistration:
+  criSocket: unix:///run/containerd/containerd.sock
+  imagePullPolicy: IfNotPresent
+  taints: null
+  kubeletExtraArgs:
+    runtime-cgroups: "/system.slice/containerd.service"
+    rotate-server-certificates: "true"
+    protect-kernel-defaults: "true"
 
-# https://kubernetes.io/docs/reference/config-api/k#ubeadm-config.v1beta3/
+
+# https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta3/
 # https://kubernetes.io/docs/reference/config-api/kubelet-config.v1beta1/
 # https://github.com/mritd/kubeadm-config-pack/blob/master/pack/conf/kubeadm.yaml

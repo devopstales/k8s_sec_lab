@@ -1,0 +1,80 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: k8s-cert-approver
+rules:
+- apiGroups:
+  - certificates.k8s.io
+  resources:
+  - signers
+  # legacy-unknown: support before kubernetes-1.18.0
+  resourceNames:
+  - "kubernetes.io/legacy-unknown"
+  - "kubernetes.io/kubelet-serving"
+  verbs:
+  - approve
+- apiGroups:
+  - certificates.k8s.io
+  resources:
+  - certificatesigningrequests
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - certificates.k8s.io
+  resources:
+  - certificatesigningrequests/approval
+  verbs:
+  - create
+  - update
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - subjectaccessreviews
+  verbs:
+  - create
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: k8s-cert-approver
+  namespace: kube-system
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: k8s-cert-approver
+subjects:
+- kind: ServiceAccount
+  namespace: kube-system
+  name: k8s-cert-approver
+roleRef:
+  kind: ClusterRole
+  name: k8s-cert-approver
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: k8s-cert-approver
+  namespace: kube-system
+spec:
+  schedule: "*/1 * * * *"
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: k8s-cert-approver
+          containers:
+          - name: k8s-cert-approver
+            image: bitnami/kubectl
+            imagePullPolicy: IfNotPresent
+            command:
+            - /bin/sh
+            - -c
+            - kubectl get csr -oname | xargs kubectl certificate approve
+          restartPolicy: OnFailure

@@ -1,0 +1,33 @@
+---
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: kyverno
+  namespace: kyverno-system
+spec:
+  chart: kyverno
+  repo: "https://kyverno.github.io/kyverno/"
+  targetNamespace: kyverno-system
+  valuesContent: |-
+    rbac:
+      create: true
+      serviceAccount:
+        create: true
+    networkPolicy:
+      enabled: false
+    resources:
+      limits:
+        memory: 256Mi
+      requests:
+        cpu: 100m
+        memory: 50Mi
+    initResources:
+      limits:
+        cpu: 100m
+        memory: 256Mi
+      requests:
+        cpu: 10m
+        memory: 64Mi
+    serviceMonitor:
+      enabled: false
+      namespace: monitoring-system
