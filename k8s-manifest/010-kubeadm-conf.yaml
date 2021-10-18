@@ -26,8 +26,8 @@ etcd:
   local:
     dataDir: /var/lib/etcd
 networking:
-  serviceSubnet: "10.66.0.0/16"
-  podSubnet: "10.88.0.1/16"
+  serviceSubnet: "10.96.0.0/12"
+  podSubnet: "10.43.0.0/16"
   dnsDomain: "cluster.local"
 apiServer:
   certSANs:
