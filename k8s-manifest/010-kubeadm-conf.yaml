@@ -13,6 +13,7 @@ nodeRegistration:
     runtime-cgroups: "/system.slice/containerd.service"
     rotate-server-certificates: "true"
     protect-kernel-defaults: "true"
+certificateKey: "7d7ed7a32da216aa6a7f8596ff2279b03760ce6e921f6ca758a54a31c571ab8d"
 ---
 apiVersion: kubeadm.k8s.io/v1beta3
 kind: ClusterConfiguration
@@ -34,13 +35,14 @@ apiServer:
   - "172.17.9.10"
   - "10.0.2.15"
   extraArgs:
+    authorization-mode: "Node,RBAC"
     # force PodSecurityPolicy
     enable-admission-plugins: "NodeRestriction,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,PodSecurityPolicy"
     kubelet-certificate-authority: "/etc/kubernetes/pki/ca.crt"
     encryption-provider-config: "/etc/kubernetes/etcd-encription.yaml"
     insecure-port: "0"
     profiling: "false"
-    anonymous-auth: "false"
+    anonymous-auth: "true"
     audit-log-maxage: "30"
     audit-log-maxbackup: "10"
     audit-log-maxsize: "100"
@@ -100,7 +102,7 @@ nodeRegistration:
     runtime-cgroups: "/system.slice/containerd.service"
     rotate-server-certificates: "true"
     protect-kernel-defaults: "true"
-
+certificateKey: "7d7ed7a32da216aa6a7f8596ff2279b03760ce6e921f6ca758a54a31c571ab8d"
 
 # https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta3/
 # https://kubernetes.io/docs/reference/config-api/kubelet-config.v1beta1/
