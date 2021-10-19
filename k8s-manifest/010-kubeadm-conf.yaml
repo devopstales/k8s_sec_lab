@@ -13,7 +13,6 @@ nodeRegistration:
     runtime-cgroups: "/system.slice/containerd.service"
     rotate-server-certificates: "true"
     protect-kernel-defaults: "true"
-certificateKey: "7d7ed7a32da216aa6a7f8596ff2279b03760ce6e921f6ca758a54a31c571ab8d"
 ---
 apiVersion: kubeadm.k8s.io/v1beta3
 kind: ClusterConfiguration
@@ -102,7 +101,6 @@ nodeRegistration:
     runtime-cgroups: "/system.slice/containerd.service"
     rotate-server-certificates: "true"
     protect-kernel-defaults: "true"
-certificateKey: "7d7ed7a32da216aa6a7f8596ff2279b03760ce6e921f6ca758a54a31c571ab8d"
 
 # https://kubernetes.io/docs/reference/config-api/kubeadm-config.v1beta3/
 # https://kubernetes.io/docs/reference/config-api/kubelet-config.v1beta1/

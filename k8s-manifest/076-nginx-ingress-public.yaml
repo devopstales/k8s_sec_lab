@@ -1,7 +1,7 @@
 apiVersion: helm.cattle.io/v1
 kind: HelmChart
 metadata:
-  name: ingress-nginx
+  name: ingress-nginx-public
   namespace: ingress-system
 spec:
   repo: "https://kubernetes.github.io/ingress-nginx"
@@ -11,13 +11,13 @@ spec:
     rbac:
       create: true
     controller:
-      watchIngressWithoutClass: true
+      watchIngressWithoutClass: false
       podSecurityPolicy:
         enabled: true
       ingressClassResource:
-        name: nginx
+        name: nginx-public
         enabled: true
-        default: true
+        default: false
         controllerValue: "k8s.io/ingress-nginx"
       resources:
         limits:
