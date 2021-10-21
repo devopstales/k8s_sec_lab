@@ -10,10 +10,11 @@ spec:
   valuesContent: |-
     rbac:
       create: true
+    podSecurityPolicy:
+      enabled: true
     controller:
+      kind: DaemonSet
       watchIngressWithoutClass: false
-      podSecurityPolicy:
-        enabled: true
       ingressClassResource:
         name: nginx-public
         enabled: true

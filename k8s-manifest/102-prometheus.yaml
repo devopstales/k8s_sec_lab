@@ -1,0 +1,150 @@
+---
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: monitoring
+  namespace: monitoring-system
+spec:
+  chart: kube-prometheus-stack
+  repo: "https://prometheus-community.github.io/helm-charts"
+  targetNamespace: monitoring-system
+  valuesContent: |-
+    global:
+      rbac:
+        create: true
+        pspEnabled: true
+
+    alertmanager:
+      alertmanagerSpec:
+        storage:
+          volumeClaimTemplate:
+            spec:
+              resources:
+                requests:
+                  storage: 10Gi
+      ingress:
+        enabled: true
+        annotations:
+          kubernetes.io/ingress.class: nginx
+          cert-manager.io/cluster-issuer: ca-issuer
+          nginx.ingress.kubernetes.io/auth-url: "http://auth-proxy-oauth2-proxy.ingress-system.svc.cluster.local/oauth2/auth"
+          nginx.ingress.kubernetes.io/auth-signin: "https://oauth.k8s.intra/oauth2/start?rd=https%3A%2F%2F$host$request_uri"
+        hosts:
+          - alertmanager.k8s.intra
+        paths:
+        - /
+        pathType: ImplementationSpecific
+        tls:
+        - secretName: tls-alertmanager-cert
+          hosts:
+          - alertmanager.k8s.intra
+
+    grafana:
+      rbac:
+        enable: true
+        pspEnabled: true
+        pspUseAppArmor: false
+      initChownData:
+        enabled: false
+      enabled: true
+      adminPassword: Password1
+      plugins:
+      - grafana-piechart-panel
+      persistence:
+        enabled: true
+        size: 5Gi
+    #  datasources:
+    #    datasources.yaml:
+    #      apiVersion: 1
+    #      datasources:
+    #      - name: Loki
+    #        type: loki
+    #        url: http://loki-stack.loki-stack:3100
+    #        access: proxy
+    #        basicAuth: false
+    #        editable: true
+    #        orgId: 1
+    #        version: 2
+    #  sidecar:
+    #    dashboards:
+    #      enabled: true
+      ingress:
+        enabled: true
+        annotations:
+          kubernetes.io/ingress.class: nginx
+          cert-manager.io/cluster-issuer: ca-issuer
+        hosts:
+          - grafana.k8s.intra
+        paths:
+        - /
+        pathType: ImplementationSpecific
+        tls:
+        - secretName: tls-grafana-cert
+          hosts:
+          - grafana.k8s.intra
+
+    prometheus:
+      enabled: true
+      prometheusSpec:
+        podMonitorSelectorNilUsesHelmValues: false
+        serviceMonitorSelectorNilUsesHelmValues: false
+        secrets: ['etcd-client-cert']
+        storageSpec:
+          volumeClaimTemplate:
+            spec:
+              resources:
+                requests:
+                  storage: 5Gi
+      ingress:
+        enabled: true
+        annotations:
+          kubernetes.io/ingress.class: nginx
+          cert-manager.io/cluster-issuer: ca-issuer
+          nginx.ingress.kubernetes.io/auth-url: "http://auth-proxy-oauth2-proxy.ingress-system.svc.cluster.local/oauth2/auth"
+          nginx.ingress.kubernetes.io/auth-signin: "https://oauth.k8s.intra/oauth2/start?rd=https%3A%2F%2F$host$request_uri"
+        hosts:
+          - prometheus.k8s.intra
+        paths:
+        - /
+        pathType: ImplementationSpecific
+        tls:
+        - secretName: tls-prometheus-cert
+          hosts:
+          - prometheus.k8s.intra
+
+    kubeEtcd:
+      enabled: true
+      service:
+        port: 2379
+        targetPort: 2379
+        selector:
+          component: etcd
+      serviceMonitor:
+        interval: ""
+        scheme: https
+        insecureSkipVerify: true
+        serverName: ""
+        caFile: ""
+        certFile: ""
+        keyFile: ""
+        metricRelabelings: []
+        relabelings: []
+        caFile: /etc/prometheus/secrets/etcd-client-cert/server-ca.crt
+        certFile: /etc/prometheus/secrets/etcd-client-cert/server-client.crt
+        keyFile: /etc/prometheus/secrets/etcd-client-cert/server-client.key
+
+#    caFile: /etc/prometheus/secrets/etcd-client-cert/ca.crt
+#    certFile: /etc/prometheus/secrets/etcd-client-cert/healthcheck-client.crt
+#    keyFile: /etc/prometheus/secrets/etcd-client-cert/healthcheck-client.key
+
+#coreDns:
+#  enabled: true
+#  service:
+#    port: 9153
+#    targetPort: 9153
+#    selector:
+#      k8s-app: kube-dns
+
+# kube-state-metrics
+# https://github.com/bibinwilson/kubernetes-prometheus/blob/master/config-map.yaml
+

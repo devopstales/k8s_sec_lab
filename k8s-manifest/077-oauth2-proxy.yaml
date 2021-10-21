@@ -1,0 +1,44 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: auth-proxy
+  namespace: ingress-system
+spec:
+  repo: "https://oauth2-proxy.github.io/manifests"
+  chart: oauth2-proxy
+  targetNamespace: ingress-system
+  valuesContent: |-
+    config:
+      clientID: "<client-id>"
+      clientSecret: "<clinet-secret>"
+      cookieSecret: "bkJnQW1ua2xGa2tCV2pGTlZDdHJWS0t4SWJ2MFFSOWY="
+    extraArgs:
+      email-domain: '*'
+      provider: keycloak
+      login-url: https://<keycloak-url>/auth/realms/<keycloak-relm>/protocol/openid-connect/auth
+      redeem-url: https://<keycloak-url>/auth/realms/<keycloak-relm>/protocol/openid-connect/token
+      profile-url: https://<keycloak-url>/auth/realms/<keycloak-relm>/protocol/openid-connect/userinfo
+      validate-url: https://<keycloak-url>/auth/realms/<keycloak-relm>/protocol/openid-connect/userinfo
+      scope: email
+      skip-provider-button: 'true'
+      force-https: 'false'
+      cookie-secure: 'false'
+      pass-authorization-header: 'true'
+      pass-basic-auth: 'false'
+      skip-jwt-bearer-tokens: 'true'
+      whitelist-domain: .k8s.intra
+      cookie-domain: .k8s.intra
+      oidc-issuer-url: https://<keycloak-url>/auth/realms/<keycloak-relm>
+    ingress:
+      enabled: true
+      path: /oauth2
+      hosts:
+        - oauth.k8s.intra
+      annotations:
+        kubernetes.io/ingress.class: nginx
+        cert-manager.io/cluster-issuer: ca-issuer
+        nginx.ingress.kubernetes.io/proxy-buffer-size: "16k"
+      tls:
+      - secretName: oauth2-proxy-tls-cert
+        hosts:
+          - oauth.k8s.intra

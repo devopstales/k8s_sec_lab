@@ -30,7 +30,10 @@ hubble:
       hosts:
         - hubble.k8s.intra
       annotations:
+        kubernetes.io/ingress.class: nginx
         cert-manager.io/cluster-issuer: ca-issuer
+        nginx.ingress.kubernetes.io/auth-url: "http://auth-proxy-oauth2-proxy.ingress-system.svc.cluster.local/oauth2/auth"
+        nginx.ingress.kubernetes.io/auth-signin: "https://oauth.k8s.intra/oauth2/start?rd=https%3A%2F%2F$host$request_uri"
       tls:
       - secretName: ingress-hubble-ui
         hosts:
@@ -101,3 +104,5 @@ prometheus:
   #serviceMonitor:
   #  enabled: true
 
+#        nginx.ingress.kubernetes.io/auth-response-headers: X-Auth-Request-User,X-Auth-Request-Email
+#        nginx.ingress.kubernetes.io/proxy-buffer-size: "16k"

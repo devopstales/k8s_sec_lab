@@ -89,6 +89,10 @@ spec:
         - default
         - kube-public
         - longhorn-system
+        - cattle-system
+        - fleet-system
+        - rancher-operator-system
+        - monitoring-system
     generate:
       kind: NetworkPolicy
       name: default-deny
@@ -116,6 +120,10 @@ spec:
         - default
         - kube-public
         - longhorn-system
+        - cattle-system
+        - fleet-system
+        - rancher-operator-system
+        - monitoring-system
     generate:
       kind: NetworkPolicy
       name: allow-to-dns
@@ -153,6 +161,10 @@ spec:
         - default
         - kube-public
         - longhorn-system
+        - cattle-system
+        - fleet-system
+        - rancher-operator-system
+        - monitoring-system
     generate:
       kind: NetworkPolicy
       name: allow-from-ingress
@@ -182,6 +194,10 @@ spec:
         - default
         - kube-public
         - longhorn-system
+        - cattle-system
+        - fleet-system
+        - rancher-operator-system
+        - monitoring-system
     generate:
       kind: NetworkPolicy
       name: allow-to-net-from-helm-controller

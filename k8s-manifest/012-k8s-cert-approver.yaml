@@ -76,5 +76,9 @@ spec:
             command:
             - /bin/sh
             - -c
-            - kubectl get csr -oname | xargs kubectl certificate approve
+            - kubectl get csr -oname > /tmp/csrs;
+            - LINECOUNT=`wc -l /tmp/csrs | awk '{print $1}'`;
+            - if [ $LINECOUNT -gt 0 ]; then;
+            - cat /tmp/csrs | xargs oc adm certificate approve;
+            - else; echo "No CSRs found, nothing to do"; fi
           restartPolicy: OnFailure

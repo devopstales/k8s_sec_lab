@@ -3,7 +3,7 @@ kind: InitConfiguration
 bootstrapTokens:
 - token: "c2t0rj.cofbfnwwrb387890"
 localAPIEndpoint:
-  advertiseAddress: 172.17.9.10
+  advertiseAddress: 172.17.13.10
   bindPort: 6443
 nodeRegistration:
   criSocket: unix:///run/containerd/containerd.sock
@@ -17,10 +17,11 @@ nodeRegistration:
 apiVersion: kubeadm.k8s.io/v1beta3
 kind: ClusterConfiguration
 clusterName: k8s-main
+# https://kubernetes.io/releases/
 kubernetesVersion: 1.22.2
 certificatesDir: /etc/kubernetes/pki
 # OR Vip ip or external lb ip
-controlPlaneEndpoint: "172.17.9.10:6443"
+controlPlaneEndpoint: "172.17.13.10:6443"
 etcd:
   local:
     dataDir: /var/lib/etcd
