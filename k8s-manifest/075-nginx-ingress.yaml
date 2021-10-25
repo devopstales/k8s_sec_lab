@@ -14,6 +14,8 @@ spec:
       enabled: true
     controller:
       kind: DaemonSet
+      service:
+        externalTrafficPolicy: "Local"
       watchIngressWithoutClass: true
       ingressClassResource:
         name: nginx
@@ -22,11 +24,11 @@ spec:
         controllerValue: "k8s.io/ingress-nginx"
       resources:
         limits:
-          cpu: 100m
-          memory: 90Mi
+          cpu: 200m
+          memory: 500Mi
         requests:
-          cpu: 100m
-          memory: 90Mi
+          cpu: 50m
+          memory: 300Mi
       metrics:
         port: 10254
         enabled: true

@@ -4,11 +4,14 @@ kubeProxyReplacement: "strict"
 
 k8sServiceHost: 10.0.2.15
 k8sServicePort: 6443
+containerRuntime:
+  integration: containerd
+rollOutCiliumPods: true
 
-global:
-  encryption:
-    enabled: true
-    nodeEncryption: true
+encryption:
+  type: ipsec
+  enabled: true
+  nodeEncryption: false
 
 hubble:
   metrics:
@@ -41,10 +44,10 @@ hubble:
     backend:
       resources:
         limits:
-          cpu: 1000m
-          memory: 1024M
+          cpu: 60m
+          memory: 300Mi
         requests:
-          cpu: 100m
+          cpu: 20m
           memory: 64Mi
     frontend:
       resources:
