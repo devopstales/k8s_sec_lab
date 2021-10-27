@@ -14,6 +14,7 @@ spec:
       enabled: true
     controller:
       kind: DaemonSet
+      allowSnippetAnnotations: false
       service:
         externalTrafficPolicy: "Local"
       watchIngressWithoutClass: true
