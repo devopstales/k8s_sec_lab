@@ -12,7 +12,7 @@ spec:
   privileged: false                # CIS - 5.2.1
   allowPrivilegeEscalation: false  # CIS - 5.2.5
   requiredDropCapabilities:        # CIS - 5.2.7/8/9
-    - ALL
+    - ALL                          # drop NET_RAW - CVE-2020-14386
   volumes:
     - 'configMap'
     - 'emptyDir'
