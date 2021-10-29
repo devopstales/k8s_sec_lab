@@ -1,0 +1,143 @@
+---
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: monitoring
+  namespace: cattle-monitoring-system
+spec:
+  chart: rancher-monitoring
+  repo: "https://charts.rancher.io"
+  targetNamespace: cattle-monitoring-system
+  valuesContent: |-
+    alertmanager:
+      alertmanagerSpec:
+        storage:
+          volumeClaimTemplate:
+            spec:
+              resources:
+                requests:
+                  storage: 10Gi
+      resources:
+        limits:
+          cpu: 100m
+          memory: 50Mi
+        requests:
+          cpu: 100m
+          memory: 50Mi
+      ingress:
+        enabled: true
+        annotations:
+          kubernetes.io/ingress.class: nginx
+          cert-manager.io/cluster-issuer: ca-issuer
+          nginx.ingress.kubernetes.io/auth-url: "http://auth-proxy-oauth2-proxy.ingress-system.svc.cluster.local/oauth2/auth"
+          nginx.ingress.kubernetes.io/auth-signin: "https://oauth.k8s.intra/oauth2/start?rd=https%3A%2F%2F$host$request_uri"
+        hosts:
+          - alertmanager.k8s.intra
+        paths:
+        - /
+        pathType: ImplementationSpecific
+        tls:
+        - secretName: tls-alertmanager-cert
+          hosts:
+          - alertmanager.k8s.intra
+    prometheus:
+      enabled: true
+      prometheusSpec:
+        podMonitorSelectorNilUsesHelmValues: false
+        serviceMonitorSelectorNilUsesHelmValues: false
+        secrets: ['etcd-client-cert']
+        storageSpec:
+          volumeClaimTemplate:
+            spec:
+              resources:
+                requests:
+                  storage: 5Gi
+      resources:
+        limits:
+          cpu: 100m
+          memory: 50Mi
+        requests:
+          cpu: 100m
+          memory: 50Mi
+      ingress:
+        enabled: true
+        annotations:
+          kubernetes.io/ingress.class: nginx
+          cert-manager.io/cluster-issuer: ca-issuer
+          nginx.ingress.kubernetes.io/auth-url: "http://auth-proxy-oauth2-proxy.ingress-system.svc.cluster.local/oauth2/auth"
+          nginx.ingress.kubernetes.io/auth-signin: "https://oauth.k8s.intra/oauth2/start?rd=https%3A%2F%2F$host$request_uri"
+        hosts:
+          - prometheus.k8s.intra
+        paths:
+        - /
+        pathType: ImplementationSpecific
+        tls:
+        - secretName: tls-prometheus-cert
+          hosts:
+          - prometheus.k8s.intra
+    kubeAdmControllerManager:
+      enabled: true
+    kubeAdmScheduler:
+      enabled: true
+    kubeAdmEtcd:
+      enabled: true
+    grafana:
+      rbac:
+        enable: true
+        pspEnabled: true
+        pspUseAppArmor: false
+      initChownData:
+        enabled: false
+      enabled: true
+      adminPassword: Password1
+      plugins:
+      - grafana-piechart-panel
+      persistence:
+        enabled: true
+        size: 5Gi
+    #  datasources:
+    #    datasources.yaml:
+    #      apiVersion: 1
+    #      datasources:
+    #      - name: Loki
+    #        type: loki
+    #        url: http://loki-stack.loki-stack:3100
+    #        access: proxy
+    #        basicAuth: false
+    #        editable: true
+    #        orgId: 1
+    #        version: 2
+    #  sidecar:
+    #    dashboards:
+    #      enabled: true
+      ingress:
+        enabled: true
+        annotations:
+          kubernetes.io/ingress.class: nginx
+          cert-manager.io/cluster-issuer: ca-issuer
+        hosts:
+          - grafana.k8s.intra
+        paths:
+        - /
+        pathType: ImplementationSpecific
+        tls:
+        - secretName: tls-grafana-cert
+          hosts:
+          - grafana.k8s.intra
+
+# https://github.com/rancher/charts/blob/main/charts/rancher-monitoring/values.yaml
+#### grafana dashboards
+## RKE2
+# 14243
+## NGINX Ingress controller
+# 9614
+## cert-manager
+# 11001
+## longhorn
+# 13032
+### cilium
+# 6658
+# 14500
+# 14502
+# 14501
+

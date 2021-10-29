@@ -1,0 +1,43 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: longhorn-prometheus-servicemonitor
+  namespace: cattle-monitoring-system
+  labels:
+    name: longhorn-prometheus-servicemonitor
+spec:
+  selector:
+    matchLabels:
+      app: longhorn-manager
+  namespaceSelector:
+    matchNames:
+    - longhorn-system
+  endpoints:
+  - port: manager
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  annotations:
+    meta.helm.sh/release-name: auth-proxy
+    meta.helm.sh/release-namespace: ingress-system
+  labels:
+    app: oauth2-proxy
+    prometheus: default
+  name: auth-proxy-oauth2-proxy
+  namespace: ingress-system
+spec:
+  endpoints:
+  - interval: 60s
+    path: /metrics
+    port: metrics
+    scrapeTimeout: 30s
+  jobLabel: auth-proxy-oauth2-proxy
+  namespaceSelector:
+    matchNames:
+    - ingress-system
+  selector:
+    matchLabels:
+      app: oauth2-proxy
+---

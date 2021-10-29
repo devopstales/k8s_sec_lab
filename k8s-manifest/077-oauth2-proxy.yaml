@@ -42,3 +42,8 @@ spec:
       - secretName: oauth2-proxy-tls-cert
         hosts:
           - oauth.k8s.intra
+    metrics:
+      enabled: true
+#      servicemonitor:
+#        enabled: true
+#        namespace: "ingress-system"
