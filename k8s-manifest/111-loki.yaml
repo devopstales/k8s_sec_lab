@@ -1,0 +1,19 @@
+---
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: logging
+  namespace: logging-system
+spec:
+  chart: loki-stack
+  repo: "https://grafana.github.io/helm-charts"
+  targetNamespace: logging-system
+  valuesContent: |-
+    fluent-bit:
+      enabled: false
+    promtail:
+      enabled: true
+    loki:
+      persistence:
+        enabled: true
+        size: 10Gi

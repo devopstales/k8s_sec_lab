@@ -1,0 +1,49 @@
+---
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: falco
+  namespace: falco-system
+spec:
+  chart: falco
+  repo: "https://falcosecurity.github.io/charts"
+  targetNamespace: falco-system
+  valuesContent: |-
+    podSecurityPolicy:
+      create: true
+    ebpf:
+      enabled: false
+    auditLog:
+      enabled: true
+    falco:
+      grpc:
+        enabled: true
+      grpcOutput:
+        enabled: true
+      webserver:
+        enabled: true
+    falcosidekick:
+      enabled: true
+      fullfqdn: true
+      webui:
+        enabled: true
+      ingress:
+        enabled: false
+        annotations:
+          kubernetes.io/ingress.class: nginx
+          cert-manager.io/cluster-issuer: ca-issuer
+          nginx.ingress.kubernetes.io/auth-url: "http://auth-proxy-oauth2-proxy.ingress-system.svc.cluster.local/oauth2/auth"
+          nginx.ingress.kubernetes.io/auth-signin: "https://oauth.k8s.intra/oauth2/start?rd=https%3A%2F%2F$host$request_uri"
+        hosts:
+          - host: falco.k8s.intra
+            paths:
+              - path: /
+                pathType: Prefix
+        tls:
+          - secretName: falco-ingress-tls
+            hosts:
+            - falco.k8s.intra
+      config:
+        loki:
+          hostport: http://logging-loki.logging-system:3100
+        customfields: "source:falco"

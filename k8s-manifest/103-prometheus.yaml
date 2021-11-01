@@ -3,12 +3,16 @@ apiVersion: helm.cattle.io/v1
 kind: HelmChart
 metadata:
   name: monitoring
-  namespace: cattle-monitoring-system
+  namespace: monitoring-system
 spec:
-  chart: rancher-monitoring
-  repo: "https://charts.rancher.io"
-  targetNamespace: cattle-monitoring-system
+  chart: kube-prometheus-stack
+  repo: "https://prometheus-community.github.io/helm-charts"
+  targetNamespace: monitoring-system
   valuesContent: |-
+    global:
+      rbac:
+        create: true
+        pspEnabled: true
     alertmanager:
       alertmanagerSpec:
         storage:
@@ -17,13 +21,6 @@ spec:
               resources:
                 requests:
                   storage: 10Gi
-      resources:
-        limits:
-          cpu: 100m
-          memory: 50Mi
-        requests:
-          cpu: 100m
-          memory: 50Mi
       ingress:
         enabled: true
         annotations:
@@ -40,6 +37,96 @@ spec:
         - secretName: tls-alertmanager-cert
           hosts:
           - alertmanager.k8s.intra
+    grafana:
+      rbac:
+        enable: true
+        pspEnabled: true
+        pspUseAppArmor: false
+      initChownData:
+        enabled: false
+      enabled: true
+      adminPassword: Password1
+      plugins:
+      - grafana-piechart-panel
+      persistence:
+        enabled: true
+        size: 5Gi
+      datasources:
+        datasources.yaml:
+          apiVersion: 1
+          datasources:
+          - name: Loki
+            type: loki
+            url: http://logging-loki.logging-system:3100
+            access: proxy
+            basicAuth: false
+            editable: true
+            orgId: 1
+            version: 2
+      dashboardProviders:
+        dashboardproviders.yaml:
+          apiVersion: 1
+          providers:
+          - name: 'default'
+            orgId: 1
+            folder: ''
+            type: file
+            disableDeletion: false
+            editable: true
+            options:
+              path: /var/lib/grafana/dashboards/default
+      dashboards:
+        default:
+          metallb:
+            gnetId: 14127
+            datasource: Prometheus
+          nginx-ingress:
+            gnetId: 9614
+            datasource: Prometheus
+          nginx-connections:
+            gnetId: 9512
+            datasource: Prometheus
+          nginx:
+            gnetId: 6927
+            datasource: Prometheus
+          kubernetes-ingress-controller-dashboard:
+            gnetId: 12575
+            datasource: Prometheus
+          cert-manager:
+            gnetId: 11001
+            datasource: Prometheus
+          longhorn:
+            gnetId: 13032
+            datasource: Prometheus
+          cilium1:
+            gnetId: 6658
+            datasource: Prometheus
+          cilium2:
+            gnetId: 14500
+            datasource: Prometheus
+          cilium3:
+            gnetId: 14501
+            datasource: Prometheus
+          cilium4:
+            gnetId: 14502
+            datasource: Prometheus
+      sidecar:
+        dashboards:
+          enabled: true
+      ingress:
+        enabled: true
+        annotations:
+          kubernetes.io/ingress.class: nginx
+          cert-manager.io/cluster-issuer: ca-issuer
+        hosts:
+          - grafana.k8s.intra
+        paths:
+        - /
+        pathType: ImplementationSpecific
+        tls:
+        - secretName: tls-grafana-cert
+          hosts:
+          - grafana.k8s.intra
     prometheus:
       enabled: true
       prometheusSpec:
@@ -52,13 +139,6 @@ spec:
               resources:
                 requests:
                   storage: 5Gi
-      resources:
-        limits:
-          cpu: 100m
-          memory: 50Mi
-        requests:
-          cpu: 100m
-          memory: 50Mi
       ingress:
         enabled: true
         annotations:
@@ -75,57 +155,45 @@ spec:
         - secretName: tls-prometheus-cert
           hosts:
           - prometheus.k8s.intra
-    kubeAdmControllerManager:
+    kubeControllerManager:
+      enabled: false
+    kubeScheduler:
+      enabled: false
+    kubeProxy:
+      enabled: false
+    kubeEtcd:
       enabled: true
-    kubeAdmScheduler:
-      enabled: true
-    kubeAdmEtcd:
-      enabled: true
-    grafana:
-      rbac:
-        enable: true
-        pspEnabled: true
-        pspUseAppArmor: false
-      initChownData:
-        enabled: false
-      enabled: true
-      adminPassword: Password1
-      plugins:
-      - grafana-piechart-panel
-      persistence:
-        enabled: true
-        size: 5Gi
-    #  datasources:
-    #    datasources.yaml:
-    #      apiVersion: 1
-    #      datasources:
-    #      - name: Loki
-    #        type: loki
-    #        url: http://loki-stack.loki-stack:3100
-    #        access: proxy
-    #        basicAuth: false
-    #        editable: true
-    #        orgId: 1
-    #        version: 2
-    #  sidecar:
-    #    dashboards:
-    #      enabled: true
-      ingress:
-        enabled: true
-        annotations:
-          kubernetes.io/ingress.class: nginx
-          cert-manager.io/cluster-issuer: ca-issuer
-        hosts:
-          - grafana.k8s.intra
-        paths:
-        - /
-        pathType: ImplementationSpecific
-        tls:
-        - secretName: tls-grafana-cert
-          hosts:
-          - grafana.k8s.intra
+      service:
+        port: 2379
+        targetPort: 2379
+        selector:
+          component: etcd
+      serviceMonitor:
+        interval: ""
+        scheme: https
+        insecureSkipVerify: true
+        serverName: ""
+        caFile: ""
+        certFile: ""
+        keyFile: ""
+        metricRelabelings: []
+        relabelings: []
+        caFile: /etc/prometheus/secrets/etcd-client-cert/ca.crt
+        certFile: /etc/prometheus/secrets/etcd-client-cert/healthcheck-client.crt
+        keyFile: /etc/prometheus/secrets/etcd-client-cert/healthcheck-client.key
 
-# https://github.com/rancher/charts/blob/main/charts/rancher-monitoring/values.yaml
+# rke2
+#    caFile: /etc/prometheus/secrets/etcd-client-cert/server-ca.crt
+#    certFile: /etc/prometheus/secrets/etcd-client-cert/server-client.crt
+#    keyFile: /etc/prometheus/secrets/etcd-client-cert/server-client.key
+# kubeadm
+#    caFile: /etc/prometheus/secrets/etcd-client-cert/ca.crt
+#    certFile: /etc/prometheus/secrets/etcd-client-cert/healthcheck-client.crt
+#    keyFile: /etc/prometheus/secrets/etcd-client-cert/healthcheck-client.key
+
+# kube-state-metrics
+# https://github.com/bibinwilson/kubernetes-prometheus/blob/master/config-map.yaml
+
 #### grafana dashboards
 ## RKE2
 # 14243
@@ -140,4 +208,3 @@ spec:
 # 14500
 # 14502
 # 14501
-

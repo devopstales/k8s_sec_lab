@@ -24,8 +24,8 @@ spec:
           protocol: layer2
           addresses:
           - 172.17.13.100-172.17.13.150
-    prometheus:
-      podMonitor:
-        enabled: true
-      prometheusRule:
-        enabled: true
+#    prometheus:
+#      podMonitor:
+#        enabled: true
+#      prometheusRule:
+#        enabled: true

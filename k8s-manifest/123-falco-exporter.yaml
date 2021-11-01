@@ -1,0 +1,16 @@
+---
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: falco-exporter
+  namespace: falco-system
+spec:
+  chart: falco-exporter
+  repo: "https://falcosecurity.github.io/charts"
+  targetNamespace: falco-system
+  valuesContent: |-
+    serviceMonitor:
+      enabled: true
+    grafanaDashboard:
+      enabled: true
+      namespace: monitoring-system

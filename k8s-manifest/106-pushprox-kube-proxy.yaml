@@ -1,0 +1,21 @@
+---
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: pushprox-kube-proxy
+  namespace: monitoring-system
+spec:
+  chart: PushProx
+  repo: "https://devopstales.github.io/helm-charts"
+  targetNamespace: monitoring-system
+  valuesContent: |-
+    metricsPort: 10249
+    component: kube-proxy
+    clients:
+      port: 10013
+      useLocalhost: true
+      tolerations:
+      - effect: "NoExecute"
+        operator: "Exists"
+      - effect: "NoSchedule"
+        operator: "Exists"
