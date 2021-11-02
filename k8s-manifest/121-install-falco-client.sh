@@ -8,9 +8,9 @@
 #apt-get install -y falco
 
 # centos
-rpm --import https://falco.org/repo/falcosecurity-3672BA8F.asc
-curl -s -o /etc/yum.repos.d/falcosecurity.repo https://falco.org/repo/falcosecurity-rpm.repo
+#rpm --import https://falco.org/repo/falcosecurity-3672BA8F.asc
+#curl -s -o /etc/yum.repos.d/falcosecurity.repo https://falco.org/repo/falcosecurity-rpm.repo
 yum -y install kernel-devel-$(uname -r)
-yum -y install falco
+#yum -y install falco
 
-falco-driver-loader
+#falco-driver-loader

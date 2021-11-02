@@ -1,0 +1,40 @@
+---
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: falco-fluent-bit
+  namespace: falco-system
+spec:
+  chart: fluent-bit
+  repo: "https://fluent.github.io/helm-charts"
+  targetNamespace: falco-system
+  valuesContent: |-
+    rbac:
+      create: true
+      nodeAccess: false
+    podSecurityPolicy:
+      create: true
+    config:
+      inputs: |
+        [INPUT]
+            Name              tail
+            Alias             kube_audit
+            Tag               kube_audit
+            Buffer_Chunk_Size 512k
+            Buffer_Max_Size   5m
+            Path              /var/log/kube-audit/audit.log
+            Parser            json
+            DB                /var/log/kube_audit_log.db
+            Mem_Buf_Limit     128MB
+            Skip_Long_Lines   On
+            Refresh_Interval  10
+
+      outputs: |
+        [OUTPUT]
+            Name            http
+            Alias           kube_audit_to_falco
+            Match           kube_audit
+            Host            falco.falco-system
+            Port            8765
+            URI             /k8s-audit
+            Format          json

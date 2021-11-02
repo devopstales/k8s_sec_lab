@@ -12,7 +12,7 @@ spec:
     podSecurityPolicy:
       create: true
     ebpf:
-      enabled: false
+      enabled: true
     auditLog:
       enabled: true
     falco:
@@ -47,3 +47,8 @@ spec:
         loki:
           hostport: http://logging-loki.logging-system:3100
         customfields: "source:falco"
+        alertmanager:
+          hostport: http://monitoring-kube-prometheus-alertmanager.monitoring-system:9093
+          minimumpriority: error
+          mutualtls: false
+          checkcert: false
