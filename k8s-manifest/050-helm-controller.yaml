@@ -113,3 +113,8 @@ spec:
         - name: helm-controller
           image: rancher/helm-controller:v0.11.6
           command: ["helm-controller"]
+      tolerations:
+      - key: "node-role.kubernetes.io/master"
+        operator: "Exists"
+        effect: "NoSchedule"
+

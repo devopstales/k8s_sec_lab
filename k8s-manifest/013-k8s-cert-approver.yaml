@@ -82,3 +82,7 @@ spec:
             - cat /tmp/csrs | xargs oc adm certificate approve;
             - else; echo "No CSRs found, nothing to do"; fi
           restartPolicy: OnFailure
+          tolerations:
+          - key: "node-role.kubernetes.io/master"
+            operator: "Exists"
+            effect: "NoSchedule"
