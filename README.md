@@ -10,12 +10,3 @@ helm upgrade --install cilium cilium/cilium   --namespace kube-system -f values.
 
 kubectl taint nodes --all node-role.kubernetes.io/master-
 ```
-
-```bash
-flux bootstrap github \
-  --owner=$GITHUB_USER \
-  --repository=k8s_sec_lab \
-  --branch=main \
-  --path=./k8s-manifest-gitops/flux \
-  --personal
-```
