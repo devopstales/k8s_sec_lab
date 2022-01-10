@@ -5,8 +5,8 @@ resources:
   - resources:
     - secrets
     providers:
-    - identity: {}
     - aesgcm:
         keys:
         - name: key1
           secret: CYB2Rnqcz8XNKGHmmPD2YS9HGcx0NTakwJN/wsWZ2aQ=
+    - identity: {}
