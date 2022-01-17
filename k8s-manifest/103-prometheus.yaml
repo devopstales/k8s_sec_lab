@@ -38,6 +38,7 @@ spec:
           hosts:
           - alertmanager.k8s.intra
     grafana:
+      defaultDashboardsTimezone: CET
       rbac:
         enable: true
         pspEnabled: true

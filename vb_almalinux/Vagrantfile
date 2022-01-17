@@ -2,16 +2,22 @@
 # vi: set ft=ruby :
 
 IMAGE = "almalinux/8"
-IMAGE_VERSION = "v8.3.20210222"
+#IMAGE_VERSION = "8.3.20210427"
 MEMORY = 6144
 CPU = 2
-IPBASE = "172.17.9."
+IPBASE_1 = "192.168.100."
+IPBASE_2 = "192.168.200."
+K8S_VERSION = "1.21.8"
+CNI = "flannel"
 
 Vagrant.configure("2") do |config|
   config.vm.box_check_update = false
-  config.timezone.value = :host
-  config.vbguest.auto_update = false
-
+  if Vagrant.has_plugin?("vagrant-vbguest")
+    config.vbguest.auto_update = false
+  end
+  if Vagrant.has_plugin?("vagrant-timezone")
+    config.timezone.value = :host
+  end
   if Vagrant.has_plugin?("vagrant-cachier")
     config.cache.scope = :box
   end
@@ -22,21 +28,27 @@ Vagrant.configure("2") do |config|
   config.vm.provider 'virtualbox' do |vb|
    vb.customize [ "guestproperty", "set", :id, "/VirtualBox/GuestAdd/VBoxService/--timesync-set-threshold", 1000 ]
    vb.customize ["modifyvm", :id, "--audio", "none"]
-   vb.linked_clone = true
    vb.customize ["modifyvm", :id, "--vram", "8"]
+   vb.customize ["modifyvm", :id, "--nicpromisc2", "allow-all"]
+   vb.customize ["modifyvm", :id, "--nicpromisc3", "allow-all"]
+   vb.linked_clone = true
   end
 
-  config.vm.define "k8s" do |node|
+  config.vm.define "k8s_" do |node|
     node.vm.box = IMAGE
 #    node.vm.box_version = IMAGE_VERSION
     node.vm.hostname = "k8s.mydomain.intra"
-    ip = "#{IPBASE}#{10}"
+    ip = "#{IPBASE_1}#{10}"
+    ip2 = "#{IPBASE_2}#{10}"
     node.vm.network "private_network", ip: ip
+     node.vm.network "private_network", ip: ip2
     node.vm.provider "virtualbox" do |vb|
       vb.memory = MEMORY
       vb.cpus = CPU
       vb.name = "k8s"
     end
+#    node.vm.provision "shell", path: "scripts/bootstrap.sh", args: [ip, K8S_VERSION]
+#    node.vm.provision "shell", path: "scripts/bootstrap_master.sh", args: [ip, K8S_VERSION, CNI]
     # Add some disks.
     if Vagrant.has_plugin?("vagrant-persistent-storage")
       node.persistent_storage.location = "./disks/k8s-disk.vmdk"

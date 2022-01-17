@@ -1,0 +1,18 @@
+image:
+  repository: kubernetesui/dashboard
+  tag: v2.0.0-beta8
+
+ingress:
+  enabled: true
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-passthrough: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    ingress.kubernetes.io/ssl-redirect: "true"
+    ingress.kubernetes.io/force-ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: ca-issuer
+  hosts:
+    - dashboard.minikube.intra 
+  tls:
+    - secretName: kubernetes-dashboard-tls
+      hosts:
+        - dashboard.minikube.intra
