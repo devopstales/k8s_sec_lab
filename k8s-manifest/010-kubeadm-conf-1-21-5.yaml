@@ -65,6 +65,7 @@ apiServer:
     hostPath: "/etc/kubernetes/etcd-encription.yaml"
     mountPath: "/etc/kubernetes/etcd-encription.yaml"
     readOnly: true
+    pathType: "File"
 scheduler:
   extraArgs:
     profiling: "false"
