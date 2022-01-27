@@ -18,6 +18,8 @@ spec:
       service:
         externalTrafficPolicy: "Local"
       watchIngressWithoutClass: true
+      extraArgs:
+        ingress-class: "nginx"
       ingressClassResource:
         name: nginx
         enabled: true
