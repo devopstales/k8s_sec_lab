@@ -18,11 +18,13 @@ spec:
       service:
         externalTrafficPolicy: "Local"
       watchIngressWithoutClass: false
+      extraArgs:
+        ingress-class: "nginx-public"
       ingressClassResource:
         name: nginx-public
         enabled: true
         default: false
-        controllerValue: "k8s.io/ingress-nginx"
+        controllerValue: "k8s.io/ingress-nginx-public"
       resources:
         limits:
           cpu: 200m
