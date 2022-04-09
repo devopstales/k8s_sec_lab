@@ -12,6 +12,7 @@ rules:
   resourceNames:
   - "kubernetes.io/legacy-unknown"
   - "kubernetes.io/kubelet-serving"
+  - "kubernetes.io/kube-apiserver-client"
   verbs:
   - approve
 - apiGroups:
@@ -74,13 +75,21 @@ spec:
             image: bitnami/kubectl
             imagePullPolicy: IfNotPresent
             command:
-            - /bin/sh
-            - -c
-            - kubectl get csr -oname > /tmp/csrs;
-            - LINECOUNT=`wc -l /tmp/csrs | awk '{print $1}'`;
-            - if [ $LINECOUNT -gt 0 ]; then;
-            - cat /tmp/csrs | xargs oc adm certificate approve;
-            - else; echo "No CSRs found, nothing to do"; fi
+              - /bin/bash
+              - -exc
+              - |
+                set +x
+                echo "running below scripts"
+                kubectl get csr
+                kubectl get csr -oname > /tmp/csrs
+                LINECOUNT=$(wc -l /tmp/csrs | awk '{print $1}')
+                echo "LINECOUNT:" $LINECOUNT
+                if [[ $LINECOUNT -gt 0 ]]; then
+                  cat /tmp/csrs | xargs kubectl certificate approve
+                  kubectl get csr
+                else
+                  echo "No CSRs found, nothing to do"
+                fi
           restartPolicy: OnFailure
           tolerations:
           - key: "node-role.kubernetes.io/master"
