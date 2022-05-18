@@ -1,6 +1,7 @@
 apiVersion: kubeadm.k8s.io/v1beta3
 kind: InitConfiguration
 localAPIEndpoint:
+  # local ip and lort
   advertiseAddress: 172.17.13.10
   bindPort: 6443
 nodeRegistration:
@@ -17,6 +18,7 @@ kind: ClusterConfiguration
 clusterName: k8s-main
 kubernetesVersion: 1.24.0
 certificatesDir: /etc/kubernetes/pki
+# loadbalancer ip and port
 controlPlaneEndpoint: "172.17.13.10:6443"
 etcd:
   local:
