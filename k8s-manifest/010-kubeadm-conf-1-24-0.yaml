@@ -79,3 +79,14 @@ featureGates:
 seccompDefault: true
 protectKernelDefaults: true
 readOnlyPort: 0
+---
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: JoinConfiguration
+nodeRegistration:
+  criSocket: unix:///run/containerd/containerd.sock
+  imagePullPolicy: IfNotPresent
+  taints: null
+  kubeletExtraArgs:
+    runtime-cgroups: "/system.slice/containerd.service"
+    rotate-server-certificates: "true"
+    protect-kernel-defaults: "true"
