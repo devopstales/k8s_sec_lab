@@ -44,3 +44,5 @@ sleep 1 # give the proxy a second
 kubectl get namespace "$PROJECT" -o json | jq 'del(.spec.finalizers[] | select("kubernetes"))' | curl -s -k -H "Content-Type: application/json" -X PUT -o /dev/null --data-binary @- http://localhost:8001/api/v1/namespaces/$PROJECT/finalize && echo "Killed namespace: $PROJECT"
 
 # proxy will get killed by the trap
+
+kubectl patch namespace cattle-system -p '{"metadata":{"finalizers":[]}}' --type='merge' -n "$PROJECT"
