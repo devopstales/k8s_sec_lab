@@ -1,0 +1,38 @@
+---
+- import_tasks: system_setup.yml
+
+- name: Template kube RPM repo
+  template:
+    src: kubernetes.repo.j2
+    dest: /etc/yum.repos.d/kubernetes.repo
+
+- name: Install required packages for Kubernetes deployment
+  package:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - "kubectl-{{ kube_version }}.0-0"
+    - "kubelet-{{ kube_version }}.0-0"
+    - "kubeadm-{{ kube_version }}.0-0"
+    - kubernetes-cni
+  when: k8s_use_rpms is not defined
+
+- name: Create /etc/cni/net.d
+  file:
+    path: /etc/cni/net.d
+    state: directory
+
+- name: make sure kubelet is started and enabled
+  service:
+    name: "kubelet"
+    state: started
+    enabled: yes
+
+- name: Set ipv4 ip_forward to 1
+  sysctl:
+    name: net.ipv4.ip_forward
+    value: 1
+    sysctl_set: yes
+    state: present
+    reload: yes
+

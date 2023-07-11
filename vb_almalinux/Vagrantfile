@@ -2,13 +2,10 @@
 # vi: set ft=ruby :
 
 IMAGE = "almalinux/8"
-#IMAGE_VERSION = "8.3.20210427"
 MEMORY = 6144
 CPU = 2
 IPBASE_1 = "192.168.100."
 IPBASE_2 = "192.168.200."
-K8S_VERSION = "1.21.8"
-CNI = "flannel"
 
 Vagrant.configure("2") do |config|
   config.vm.box_check_update = false
@@ -34,21 +31,33 @@ Vagrant.configure("2") do |config|
    vb.linked_clone = true
   end
 
-  config.vm.define "k8s_" do |node|
+  config.vm.define "k8s" do |node|
     node.vm.box = IMAGE
-#    node.vm.box_version = IMAGE_VERSION
     node.vm.hostname = "k8s.mydomain.intra"
     ip = "#{IPBASE_1}#{10}"
     ip2 = "#{IPBASE_2}#{10}"
     node.vm.network "private_network", ip: ip
-     node.vm.network "private_network", ip: ip2
+    node.vm.network "private_network", ip: ip2
     node.vm.provider "virtualbox" do |vb|
       vb.memory = MEMORY
       vb.cpus = CPU
       vb.name = "k8s"
     end
-#    node.vm.provision "shell", path: "scripts/bootstrap.sh", args: [ip, K8S_VERSION]
-#    node.vm.provision "shell", path: "scripts/bootstrap_master.sh", args: [ip, K8S_VERSION, CNI]
+
+    node.vm.provision "ansible" do |ansible|
+        ansible.playbook = "ansible_roles/playbook.yml"
+        ansible.verbose = false
+        ansible.groups = {
+            "master" => ["k8s"],
+        }
+        ansible.extra_vars = {
+            kubeadm_config_loadbalancer_ip: "#{IPBASE_1}#{10}",
+            kubernetes_node_ip: "#{IPBASE_1}#{10}",
+            container_runtime: "crio",
+            kubernetes_version: '1.26',
+        }
+    end
+
     # Add some disks.
     if Vagrant.has_plugin?("vagrant-persistent-storage")
       node.persistent_storage.location = "./disks/k8s-disk.vmdk"

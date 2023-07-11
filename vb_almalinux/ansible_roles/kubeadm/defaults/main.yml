@@ -1,0 +1,106 @@
+---
+modprobe_modules:
+  - br_netfilter
+  - overlay
+
+# What container runtime do we use?
+# valid values:
+# - containerd
+# - crio
+container_runtime: containerd
+
+kubernetes_packages:
+  - name: kubelet={{ kubernetes_version_rhel_package }}-00
+    state: present
+  - name: kubectl={{ kubernetes_version_rhel_package }}-00
+    state: present
+  - name: kubeadm={{ kubernetes_version_rhel_package }}-00
+    state: present
+  - name: kubernetes-cni
+    state: present
+
+kubernetes_version: '1.26'
+kubernetes_version_rhel_package: '{{ kubernetes_version}}.0'
+
+kubernetes_kubelet_extra_args: "--node-ip={{ kubernetes_node_ip | default('ansible_host') }} --fail-swap-on=false"
+
+etcd_encription: true
+etcd_encription_key: "jsHhG7QRaTblWfiWaww3qvgOybpWYQhtStqanQ1wqBI="
+
+kubernetes_audit_enabled: false
+
+kubeadm_config_bootstrap_token: "c2t0rj.cofbfnwwrb387890"
+kubeadm_config_certificate_key: "e6a2eb8581237ab72a4f494f30285ec12a9694d750b9785706a83bfcbbbd2204"
+kubeadm_config_cluster_name: "k8s-main"
+kubeadm_config_loadbalancer_ip: "{{ kubernetes_node_ip | default('ansible_host') }}"
+kubeadm_config_loadbalancer_port: 6443
+kubeadm_config_service_subnet: "10.96.0.0/12"
+# kubeadm_config_oidc_server: https://sso.mydomain.intra/auth/realms/k8s
+# kubeadm_config_oidc_client_id: k8s-dashboard
+# kubeadm_config_oidc_user_claim: mail
+# kubeadm_config_oidc_group_claim: groups
+kubeadm_config_admission_plugins:
+#  - PodSecurityPolicy
+  - NodeRestriction
+  - MutatingAdmissionWebhook
+  - ValidatingAdmissionWebhook
+
+# --skip-phases=addon/kube-proxy
+kubernetes_kubeadm_init_extra_opts: ""
+kubernetes_ignore_preflight_errors: 'Swap'
+# kubernetes_ignore_preflight_errors: 'al'
+
+# flannel, calico, weave, cilium
+kubernetes_pod_network:
+  # cni: "flannel"
+  # cidr: "10.244.0.0/16"
+  # cni: "calico"
+  # cidr: "192.168.0.0/16"
+  # cni: "weave"
+  # cidr: "10.32.0.0/12"
+  cni: "cilium"
+  cidr: "10.244.0.0/16"
+  hubble_url: hubble.k8s.intra
+  hubble_secret: hubble-ingress-tls
+
+# Flannel config files.
+kubernetes_flannel_manifest_file_rbac: https://raw.githubusercontent.com/coreos/flannel/master/Documentation/k8s-manifests/kube-flannel-rbac.yml
+kubernetes_flannel_manifest_file: https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+
+# Calico config files
+kubernetes_calico_manifest_file: https://projectcalico.docs.tigera.io/manifests/calico.yaml
+
+# Cilium config
+kubernetes_cilium_repo_name: "cilium"
+kubernetes_cilium_chart_url: "https://helm.cilium.io/"
+#cilium_chart_values:
+#  ingress:
+#    annotations: |-
+
+kubernetes_join_command_extra_opts: ""
+kubernetes_allow_pods_on_master: true
+
+kubernetes_apiserver_advertise_address: ''
+kubernetes_version_kubeadm: 'stable-{{ kubernetes_version }}'
+
+
+kubernetes_apt_release_channel: main
+# Note that xenial repo is used for all Debian derivatives at this time.
+kubernetes_apt_repository: "deb http://apt.kubernetes.io/ kubernetes-xenial {{ kubernetes_apt_release_channel }}"
+kubernetes_apt_ignore_key_error: false
+
+kubernetes_yum_arch: '$basearch'
+kubernetes_yum_base_url: "https://packages.cloud.google.com/yum/repos/kubernetes-el7-{{ kubernetes_yum_arch }}"
+kubernetes_yum_gpg_key:
+  - https://packages.cloud.google.com/yum/doc/yum-key.gpg
+  - https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+
+kubernetes_yum_gpg_check: true
+kubernetes_yum_repo_gpg_check: true
+
+# helm vars
+helm_mirror: 'https://get.helm.sh'
+helm_version: '3.10.1'
+helm_architecture: 'amd64'
+helm_os: 'linux'
+helm_redis_filename: 'helm-v{{ helm_version }}-{{ helm_os }}-{{ helm_architecture }}.tar.gz'

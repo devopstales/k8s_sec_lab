@@ -1,0 +1,67 @@
+---
+- name: Configure Flannel networking.
+  become: true
+  command: "{{ item }}"
+  with_items:
+    - kubectl apply -f {{ kubernetes_flannel_manifest_file_rbac }}
+    - kubectl apply -f {{ kubernetes_flannel_manifest_file }}
+  register: flannel_result
+  changed_when: "'created' in flannel_result.stdout"
+  when: kubernetes_pod_network == 'flannel'
+
+- name: Configure Calico networking.
+  become: true
+  command: "{{ item }}"
+  with_items:
+    - kubectl apply -f {{ kubernetes_calico_manifest_file }}
+  register: calico_result
+  changed_when: "'created' in calico_result.stdout"
+  when: kubernetes_pod_network.cni == 'calico'
+
+- name: Get Kubernetes version for Weave installation.
+  become: true
+  shell: kubectl version | base64 | tr -d '\n'
+  changed_when: false
+  register: kubectl_version
+  when: kubernetes_pod_network.cni == 'weave'
+
+- name: Configure Weave networking.
+  become: true
+  command: "{{ item }}"
+  with_items:
+    - "kubectl apply -f https://cloud.weave.works/k8s/net?k8s-version={{ kubectl_version.stdout_lines[0] }}"
+  register: weave_result
+  changed_when: "'created' in weave_result.stdout"
+  when: kubernetes_pod_network.cni == 'weave'
+
+# Helm install
+- name: include helm-install.yaml
+  include_tasks: helm-install.yaml
+
+# cilium
+- name: Install Helm Diff
+  become: true
+  kubernetes.core.helm_plugin:
+    state: present
+    plugin_path: https://github.com/databus23/helm-diff
+
+- name: Add stable chart repo
+  become: true
+  kubernetes.core.helm_repository:
+    name: "{{ kubernetes_cilium_repo_name }}"
+    repo_url: "{{ kubernetes_cilium_chart_url }}"
+
+- name: Setup cilium-helm-values.yaml
+  become: true
+  template:
+    src: "cilium-helm-values.yaml.j2"
+    dest: "/etc/kubernetes/cilium-helm-values.yaml"
+
+- name: Deploy Cilium chart using values files on target
+  become: true
+  kubernetes.core.helm:
+    name: "{{ kubernetes_cilium_repo_name }}"
+    chart_ref: "{{ kubernetes_cilium_repo_name }}/{{ kubernetes_cilium_repo_name }}"
+    release_namespace: kube-system
+    values_files:
+      - /etc/kubernetes/cilium-helm-values.yaml

@@ -1,0 +1,16 @@
+---
+- name: "Disable SELinux :("
+  selinux:
+    state: disabled
+
+- name: "Stop iptables :("
+  service:
+    name: firewalld
+    state: stopped
+  ignore_errors: yes
+
+- name: "Disable iptables :("
+  service:
+    name: firewalld
+    enabled: no
+  ignore_errors: yes

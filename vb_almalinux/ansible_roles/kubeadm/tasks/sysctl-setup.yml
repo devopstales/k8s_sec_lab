@@ -1,0 +1,66 @@
+---
+- name: Ensure procps is installed.
+  become: true
+  package:
+    name: "{{ procps_package }}"
+    state: present
+  when: >
+    ansible_distribution != 'Debian'
+
+- name: load requested modules
+  become: true
+  community.general.modprobe:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ modprobe_modules }}"
+  when:
+    - modprobe_modules is defined
+
+# See: https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/#letting-iptables-see-bridged-traffic
+- name: Let iptables see bridged traffic.
+  become: true
+  sysctl:
+    name: "{{ item }}"
+    value: '1'
+    state: present
+    sysctl_set: true
+    reload: true
+  loop:
+    - net.bridge.bridge-nf-call-iptables
+    - net.bridge.bridge-nf-call-ip6tables
+    - net.ipv4.ip_forward
+
+# protectKernelDefaults
+- name: Set options for protectKernelDefaults.
+  become: true
+  sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    state: present
+  loop:
+    - name: kernel.keys.root_maxbytes
+      value: 25000000
+    - name: kernel.keys.root_maxkeys
+      value: 1000000
+    - name: kernel.panic
+      value: 10
+    - name: kernel.panic_on_oops
+      value: 1
+    - name: vm.overcommit_memory
+      value: 1
+    - name: vm.panic_on_oom
+      value: 0
+
+# protectKernelDefaults
+- name: Set options to update max open files
+  become: true
+  sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    state: present
+  loop:
+    - name: fs.inotify.max_user_instances
+      value: 2048
+    - name: fs.inotify.max_user_watches
+      value: 12288
+

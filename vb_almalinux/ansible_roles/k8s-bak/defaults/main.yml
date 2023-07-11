@@ -1,0 +1,21 @@
+---
+# Kube Version
+kube_version: "1.26"
+
+# What container runtime do we use?
+# valid values:
+# - containerd
+# - crio
+container_runtime: containerd
+
+# --------------------------- -
+# crio vars                 - -
+# --------------------------- -
+# Which version of crio?
+crio_version: "{{ kube_version }}"
+
+# Pod net work CIDR
+pod_network_cidr: "10.244.0.0"
+
+
+

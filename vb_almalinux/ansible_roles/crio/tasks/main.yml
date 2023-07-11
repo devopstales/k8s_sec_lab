@@ -1,0 +1,49 @@
+---
+- name: "Remove (if any) trailing slash in repository url"
+  set_fact:
+    crio_repository_base_url_noslash: '{{ crio_repository_base_url | regex_replace("/$", "") }}'
+
+- name: "Configure yum stable repository"
+  get_url:
+#    url: "{{ crio_repository_base_url_noslash }}/repositories/devel:/kubic:/libcontainers:/stable/{{ ansible_distribution }}_{{ ansible_distribution_major_version }}/devel:kubic:libcontainers:stable.repo"
+    url: "{{ crio_repository_base_url_noslash }}/repositories/devel:/kubic:/libcontainers:/stable/CentOS_{{ ansible_distribution_major_version }}/devel:kubic:libcontainers:stable.repo"
+    dest: '/etc/yum.repos.d/devel:kubic:libcontainers:stable.repo'
+    owner: root
+    group: root
+    mode: 0644
+
+- name: "Configure yum cri-o repository"
+  get_url:
+#    url: "{{ crio_repository_base_url_noslash }}/repositories/devel:kubic:libcontainers:stable:cri-o:{{ crio_version }}/{{ ansible_distribution }}_{{ ansible_distribution_major_version }}/devel:kubic:libcontainers:stable:cri-o:{{ crio_version }}.repo"
+    url: "{{ crio_repository_base_url_noslash }}/repositories/devel:kubic:libcontainers:stable:cri-o:{{ crio_version }}/CentOS_{{ ansible_distribution_major_version }}/devel:kubic:libcontainers:stable:cri-o:{{ crio_version }}.repo"
+    dest: '/etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:{{ crio_version }}.repo'
+    owner: root
+    group: root
+    mode: 0644
+
+- name: "Set baseUrl for crio repositories"
+  replace:
+    path: "/etc/yum.repos.d/{{ item }}"
+    regexp: '^baseurl=https://download.opensuse.org/(.*)$'
+    replace: 'baseurl={{ crio_repository_base_url_noslash }}/\1'
+  with_items:
+    - "devel:kubic:libcontainers:stable.repo"
+    - "devel:kubic:libcontainers:stable:cri-o:{{ crio_version }}.repo"
+
+- name: "Install cri-o"
+  package:
+    name:
+      - cri-o
+      - conntrack
+    state: present
+
+- name: "Configure cri-o"
+  include_tasks: configure_crio.yml
+
+- meta: flush_handlers
+
+- name: "Ensure cri-o service is started and enabled"
+  systemd:
+    name: crio
+    state: started
+    enabled: true

@@ -1,0 +1,32 @@
+---
+- name: Ensure Kubernetes repository exists.
+  become: true
+  yum_repository:
+    name: kubernetes
+    description: Kubernetes
+    enabled: true
+    gpgcheck: "{{ kubernetes_yum_gpg_check }}"
+    repo_gpgcheck: "{{ kubernetes_yum_repo_gpg_check }}"
+    baseurl: "{{ kubernetes_yum_base_url }}"
+    gpgkey: "{{ kubernetes_yum_gpg_key }}"
+
+- name: Add Kubernetes GPG keys.
+  become: true
+  rpm_key:
+    key: "{{ item }}"
+    state: present
+  register: kubernetes_rpm_key
+  with_items: "{{ kubernetes_yum_gpg_key }}"
+
+- name: Make cache if Kubernetes GPG key changed.
+  become: true
+  command: "yum -q makecache -y --disablerepo='*' --enablerepo='kubernetes'"
+  when: kubernetes_rpm_key is changed
+
+- name: Install app packages.
+  become: true
+  package:
+    name: "{{ item }}"
+    state: "present"
+  with_items:
+    - "iscsi-initiator-utils"

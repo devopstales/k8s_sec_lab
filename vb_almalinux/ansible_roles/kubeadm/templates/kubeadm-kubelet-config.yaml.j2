@@ -1,0 +1,121 @@
+---
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: InitConfiguration
+localAPIEndpoint:
+  advertiseAddress: "{{ kubernetes_node_ip | default('ansible_host') }}"
+  bindPort: 6443
+bootstrapTokens:
+- token: {{ kubeadm_config_bootstrap_token }}
+nodeRegistration:
+{% if container_runtime == "containerd" %}
+  criSocket: unix:///run/containerd/containerd.sock
+{% elif container_runtime == "crio" %}
+  criSocket: unix:///var/run/crio/crio.sock
+{% endif %}
+  imagePullPolicy: IfNotPresent
+  taints: null
+  kubeletExtraArgs:
+    runtime-cgroups: "/system.slice/containerd.service"
+    rotate-server-certificates: "true"
+    protect-kernel-defaults: "true"
+certificateKey: {{ kubeadm_config_certificate_key }}
+---
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: ClusterConfiguration
+clusterName: {{ kubeadm_config_cluster_name }}
+kubernetesVersion: v{{ kubernetes_version_rhel_package }}
+certificatesDir: /etc/kubernetes/pki
+controlPlaneEndpoint: "{{ kubeadm_config_loadbalancer_ip }}:{{ kubeadm_config_loadbalancer_port }}"
+etcd:
+  local:
+    dataDir: /var/lib/etcd
+networking:
+  serviceSubnet: {{ kubeadm_config_service_subnet }}
+  podSubnet: {{ kubernetes_pod_network.cidr }}
+  dnsDomain: "cluster.local"
+apiServer:
+  extraArgs:
+    authorization-mode: "Node,RBAC"
+{% if kubeadm_config_oidc_server is defined %}
+    # OIDC
+    oidc-client-id:  {{ kubeadm_config_oidc_client_id }}
+    oidc-issuer-url: {{ kubeadm_config_oidc_server }}
+    oidc-username-claim: {{ kubeadm_config_oidc_user_claim }}
+    oidc-groups-claim: {{ kubeadm_config_oidc_group_claim }}
+{% endif %}
+    enable-admission-plugins: "{% for i in kubeadm_config_admission_plugins %}{{ i }}{{ ',' if not loop.last else '' }}{% endfor %}"
+    kubelet-certificate-authority: "/etc/kubernetes/pki/ca.crt"
+    profiling: "false"
+    anonymous-auth: "true"
+    service-node-port-range: "30000-50000"
+{% if etcd_encription|bool is sameas true %}
+    # mounts
+    encryption-provider-config: "/etc/kubernetes/etcd-encription.yaml"
+{% endif %}
+{% if kubernetes_audit_enabled|bool is sameas true %}
+    audit-log-maxage: "30"
+    audit-log-maxbackup: "10"
+    audit-log-maxsize: "100"
+    audit-log-path: "/var/log/kube-audit/audit.log"
+    audit-policy-file: "/etc/kubernetes/audit-policy.yaml"
+{% endif %}
+{% if kubernetes_audit_enabled|bool is sameas true or etcd_encription|bool is sameas true %}
+  extraVolumes:
+{% endif %}
+{% if kubernetes_audit_enabled|bool is sameas true %}
+  - name: "audit-config"
+    hostPath: "/etc/kubernetes/audit-policy.yaml"
+    mountPath: "/etc/kubernetes/audit-policy.yaml"
+    readOnly: true
+    pathType: "File"
+  - name: "audit-log"
+    hostPath: "/var/log/kube-audit"
+    mountPath: "/var/log/kube-audit"
+    pathType: "DirectoryOrCreate"
+{% endif %}
+{% if etcd_encription|bool is sameas true %}
+  - name: "etc-kubernetes-etcd-enc"
+    hostPath: "/etc/kubernetes/etcd-encription.yaml"
+    mountPath: "/etc/kubernetes/etcd-encription.yaml"
+    readOnly: true
+    pathType: "File"
+{% endif %}
+scheduler:
+  extraArgs:
+    profiling: "false"
+controllerManager:
+  extraArgs:
+    profiling: "false"
+---
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+enableServer: true
+failSwapOn: false
+cgroupDriver: "systemd"
+serverTLSBootstrap: true
+rotateCertificates: true
+featureGates:
+    RotateKubeletServerCertificate: true
+    SeccompDefault: true
+    NodeSwap: true
+seccompDefault: true
+protectKernelDefaults: true
+readOnlyPort: 0
+#---
+#apiVersion: kubeadm.k8s.io/v1beta3
+#kind: JoinConfiguration
+#nodeRegistration:
+#{% if container_runtime == "containerd" %}
+#  criSocket: unix:///run/containerd/containerd.sock
+#{% elif container_runtime == "crio" %}
+#  criSocket: unix:///var/run/crio/crio.sock
+#{% endif %}
+#  imagePullPolicy: IfNotPresent
+#  taints: null
+#  kubeletExtraArgs:
+#    runtime-cgroups: "/system.slice/containerd.service"
+#    rotate-server-certificates: "true"
+#    protect-kernel-defaults: "true"
+#discovery:
+#  bootstrapToken:
+#    token: {{ kubeadm_config_bootstrap_token }}

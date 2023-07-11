@@ -1,0 +1,301 @@
+---
+- name: Include OS-specific variables.
+  become: true
+  include_vars: "{{ ansible_os_family }}.yml"
+
+- include_tasks: setup-RedHat.yml
+  when: ansible_os_family == 'RedHat'
+
+- include_tasks: setup-Debian.yml
+  when: ansible_os_family == 'Debian'
+
+- name: Install Kubernetes packages.
+  become: true
+  package:
+    name: "{{ item.name | default(item) }}"
+    state: "{{ item.state | default('present') }}"
+  with_items: "{{ kubernetes_packages }}"
+
+- include_tasks: sysctl-setup.yml
+
+- include_tasks: kubelet-setup.yml  # deprecated
+  when: kubernetes_kubelet_extra_args|length > 0
+
+- name: Ensure kubernetes config directory exists.
+  become: true
+  file:
+    path: /etc/kubernetes
+    state: directory
+
+- name: Setup etcd-encription.yaml
+  become: true
+  template:
+    src: "etcd-encription.yaml.j2"
+    dest: "/etc/kubernetes/etcd-encription.yaml"
+  when:
+    - etcd_encription | bool
+    - "'master' in group_names"
+
+- name: Setup audit-policy.yaml
+  become: true
+  template:
+    src: "audit-policy.yaml.j2"
+    dest: "/etc/kubernetes/audit-policy.yaml"
+  when:
+    - kubernetes_audit_enabled | bool
+    - "'master' in group_names"
+
+- name: Ensure kubelet is started and enabled at boot.
+  become: true
+  service:
+    name: kubelet
+    state: started
+    enabled: true
+
+- name: Check if Kubernetes has already been initialized.
+  become: true
+  stat:
+    path: /etc/kubernetes/admin.conf
+  register: kubernetes_init_stat
+  when:
+    - "'master' in group_names"
+
+- name: Check if worker has already been joined.
+  become: true
+  stat:
+    path: /etc/kubernetes/bootstrap-kubelet.conf
+  register: kubernetes_worker_stat
+  when:
+    - "'worker' in group_names"
+
+- name: include first-master-setup.yml
+  include_tasks: first-master-setup.yml
+  when:
+    - kubernetes_role is defined
+    - kubernetes_role == 'first-master'
+
+- name: include cni-setup.yml
+  include_tasks: cni-setup.yml
+  when:
+    - kubernetes_role is defined
+    - kubernetes_role == 'first-master'
+
+- name: Extract the certificate-key token
+  command: "kubeadm certs certificate-key"
+  register: certificate_token
+  become: true
+  when:
+    - kubernetes_role is defined
+    - kubernetes_role == 'first-master'
+
+- name: Initialize the upload certs
+  become: true
+  command: "kubeadm init phase upload-certs --upload-certs --certificate-key={{ certificate_token.stdout }}"
+  register: upload_certs
+  when:
+    - kubernetes_role is defined
+    - kubernetes_role == 'first-master'
+
+- name: Extract the controllers join command
+  become: true
+  command: "kubeadm token create --print-join-command --certificate-key {{ certificate_token.stdout }}"
+  register: controller_command
+  when:
+    - kubernetes_role is defined
+    - kubernetes_role == 'first-master'
+    - groups["master"] is defined
+    - (groups["master"]|length>1)
+
+- name: Extract the workers join command
+  become: true
+  command: "kubeadm token create --print-join-command"
+  register: worker_command
+  when:
+    - kubernetes_role is defined
+    - kubernetes_role == 'first-master'
+    - groups["worker"] is defined
+    - (groups["worker"]|length>0)
+
+- name: Save kubeadm join command for controllers
+  local_action: copy content={{ controller_command.stdout_lines | last | trim }} dest="/tmp/controller_join.out"
+  when:
+    - kubernetes_role is defined
+    - kubernetes_role == 'first-master'
+    - groups["master"] is defined
+    - (groups["master"]|length>1)
+
+- name: Save kubeadm join command for workers
+  local_action: copy content={{ worker_command.stdout_lines | last | trim }} dest="/tmp/worker_join.out"
+  when:
+    - kubernetes_role is defined
+    - kubernetes_role == 'first-master'
+    - groups["worker"] is defined
+    - (groups["worker"]|length>0)
+
+## controllers join
+- name: Copy controllers join command to local file
+  become: true
+  copy:
+    src: "/tmp/controller_join.out"
+    dest: "/tmp/controller_join.out"
+    mode: '0644'
+  when:
+    - "'master' in group_names"
+    - not kubernetes_init_stat.stat.exists
+    - kubernetes_role is not defined
+    - groups["master"] is defined
+    - (groups["master"]|length>1)
+
+- name: Read controller join command on controllers
+  become: true
+  debug: msg={{ lookup('file', "/tmp/controller_join.out") }}
+  register: controller_join_local
+  when: 
+    - "'master' in group_names"
+    - not kubernetes_init_stat.stat.exists
+    - kubernetes_role is not defined
+    - groups["master"] is defined
+    - (groups["master"]|length>1)
+
+- name: Join other controllers to Kubernetes cluster
+  become: true
+  command: "{{ controller_join_local.msg }}"
+  register: controllers_join
+  when: 
+    - "'master' in group_names"
+    - not kubernetes_init_stat.stat.exists
+    - kubernetes_role is not defined
+    - groups["master"] is defined
+    - (groups["master"]|length>1)
+
+- name: Print the controllers join output to screen.
+  become: true
+  debug:
+    var: controllers_join.stdout
+    verbosity: 2
+  when: 
+    - "'master' in group_names"
+    - not kubernetes_init_stat.stat.exists
+    - kubernetes_role is not defined
+    - groups["master"] is defined
+    - (groups["master"]|length>1)
+
+- name: Delete controllers join command file
+  become: true
+  ansible.builtin.file:
+    path: "/tmp/controller_join.out"
+    state: "absent"
+  when:
+    - groups["master"] is defined
+    - (groups["master"]|length>1)
+
+## worker join
+- name: Copy worker join command to local file
+  become: true  
+  copy:
+    src: "/tmp/worker_join.out"
+    dest: "/tmp/worker_join.out"
+    mode: '0644'
+  when: 
+    - "'worker' in group_names"
+    - not kubernetes_worker_stat.stat.exists
+    - groups["worker"] is defined
+    - (groups["worker"]|length>0)
+
+- name: Read worker join command on workers
+  become: true
+  debug: msg={{ lookup('file', "/tmp/worker_join.out") }}
+  register: worker_join_local
+  when: 
+    - "'worker' in group_names"
+    - not kubernetes_worker_stat.stat.exists
+    - groups["worker"] is defined
+    - (groups["worker"]|length>0)
+
+- name: Join other worker to Kubernetes cluster
+  become: true
+  command: "{{ worker_join_local.msg }}"
+  register: worker_join
+  when: 
+    - "'worker' in group_names"
+    - not kubernetes_worker_stat.stat.exists
+    - groups["worker"] is defined
+    - (groups["worker"]|length>0)
+
+- name: Print the worker join output to screen.
+  become: true
+  debug:
+    var: worker_join.stdout
+    verbosity: 2
+  when: 
+    - "'worker' in group_names"
+    - not kubernetes_worker_stat.stat.exists
+    - groups["worker"] is defined
+    - (groups["worker"]|length>0)
+
+- name: Delete worker join command file
+  become: true
+  ansible.builtin.file:
+    path: "/tmp/worker_join.out"
+    state: "absent"
+  when:
+    - groups["worker"] is defined
+    - (groups["worker"]|length>0)
+
+## etcd folder owner
+- name: Ensure .kube directory exists.
+  become: true
+  file:
+    path: ~/.kube
+    state: directory
+    mode: 0755
+  when:
+    - "'master' in group_names"
+
+- name: Delete ~/.kube/conf.
+  become: true
+  ansible.builtin.file:
+    path: "~/.kube/config"
+    state: "absent"
+
+- name: Symlink the kubectl admin.conf to ~/.kube/conf.
+  become: true
+  file:
+    src: /etc/kubernetes/admin.conf
+    dest: ~/.kube/config
+    state: link
+    mode: 0644
+  when:
+    - "'master' in group_names"
+
+- name: Create etcd groupe
+  become: true
+  group:
+    name: etcd
+    state: present
+  when:
+    - "'master' in group_names"
+
+- name: Create etcd user
+  become: true
+  user:
+    name: etcd
+    groups: etcd
+    shell: /sbin/nologin
+    create_home: no
+    append: yes
+    comment: "etcd user"
+    state: present
+  when: 
+    - "'master' in group_names"
+
+- name: Configure owner on etcd folder
+  become: true
+  file:
+    state: directory
+    path: /var/lib/etcd
+    owner: "etcd"
+    group: "etcd"
+    mode: '0700'
+  when: 
+    - "'master' in group_names"

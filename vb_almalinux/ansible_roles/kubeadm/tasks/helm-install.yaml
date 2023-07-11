@@ -1,0 +1,57 @@
+- name: download sha256sum
+  get_url:
+    url: '{{ helm_mirror }}/{{ helm_redis_filename }}.sha256'
+    dest: '/tmp/{{ helm_redis_filename }}.sha256'
+    force: no
+    use_proxy: yes
+    validate_certs: yes
+    mode: 'u=rw,go=r'
+
+- name: read sha256sum
+  slurp:
+    src: '/tmp/{{ helm_redis_filename }}.sha256'
+  register: helm_sha256sum
+
+- name: download Helm
+  get_url:
+    url: '{{ helm_mirror }}/{{ helm_redis_filename }}'
+    dest: '/tmp/{{ helm_redis_filename }}'
+    checksum: 'sha256:{{ helm_sha256sum.content | b64decode | trim }}'
+    force: no
+    use_proxy: yes
+    validate_certs: yes
+    mode: 'u=rw,go=r'
+
+- name: install unarchive module dependencies (apt, yum, dnf, zypper)
+  become: true
+  package:
+    name:
+      - tar
+      - unzip
+      - gzip
+      - git
+    state: present
+  when: ansible_pkg_mgr in ('apt', 'yum', 'dnf', 'zypper')
+
+- name: install Helm
+  become: true
+  unarchive:
+    src: '/tmp/{{ helm_redis_filename }}'
+    remote_src: yes
+    dest: '/tmp'
+    extra_opts:
+      - '--strip-components=1'
+    owner: root
+    group: root
+    mode: 'o-w'
+    creates: '/tmp/helm'
+
+- name: move bin
+  become: true
+  ansible.builtin.copy:
+    src: '/tmp/helm'
+    remote_src: true
+    dest: '/bin/helm'
+    owner: root
+    group: root
+    mode: 'u=rwx,go=rx'

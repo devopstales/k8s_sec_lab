@@ -1,0 +1,11 @@
+---
+crio_version: 1.26
+crio_repository_base_url: https://download.opensuse.org
+crio_repository_debian_key_base_url: https://download.opensuse.org
+crio_unqualified_search_registries:
+  - docker.io
+crio_registries: []
+crio_mirrors: []
+crio_config: []
+crio_storage: []
+crio_fedora_cgroup_version: v2

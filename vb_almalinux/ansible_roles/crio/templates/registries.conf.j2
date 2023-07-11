@@ -1,0 +1,26 @@
+#jinja2: lstrip_blocks: 'True'
+# For more information on this configuration file, see containers-registries.conf(5).
+
+unqualified-search-registries = {{ crio_unqualified_search_registries | to_json }}
+
+{% for registry in crio_registries %}
+[[registry]]
+  {% for key,value in registry.items() %}
+    {% if value is boolean %}
+      {{- key }} = {{ value | ternary('true', 'false') }}
+    {% else %}
+      {{- key }} = "{{ value }}"
+    {% endif %}
+    {% endfor %}
+{% endfor %}
+
+{% for mirror in crio_mirrors %}
+[[registry.mirror]]
+  {% for key,value in mirror.items() %}
+    {% if value is boolean %}
+      {{- key }} = {{ value | ternary('true', 'false') }}
+    {% else %}
+      {{- key }} = "{{ value }}"
+    {% endif %}
+  {% endfor %}
+{% endfor %}

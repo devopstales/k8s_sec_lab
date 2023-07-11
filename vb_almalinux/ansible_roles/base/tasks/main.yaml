@@ -1,0 +1,14 @@
+- name: Ensure container-selinux is installed.
+  package:
+    name: container-selinux
+    state: present
+
+  - name: Install EPEL repo
+    yum:
+      name: epel-release
+      state: present
+
+  - name: Install Ansible
+    yum:
+      name: ansible
+      state: present

@@ -1,0 +1,119 @@
+# Set kubeProxyReplacement to "strict" in order to prevent CVE-2020-8554 and fully remove kube-proxy.
+# See https://cilium.io/blog/2020/12/11/kube-proxy-free-cve-mitigation for more information.
+kubeProxyReplacement: "strict"
+
+k8sServiceHost: {{ kubeadm_config_loadbalancer_ip }}
+k8sServicePort: {{ kubeadm_config_loadbalancer_port }}
+containerRuntime:
+  integration: containerd
+rollOutCiliumPods: true
+
+encryption:
+  type: ipsec
+  enabled: false
+  nodeEncryption: false
+
+hubble:
+  metrics:
+    serviceMonitor:
+      enabled: false
+    enabled:
+      - dns:query;ignoreAAAA
+      - drop
+      - tcp
+      - flow
+      - icmp
+      - http
+      - "flow:sourceContext=workload-name|reserved-identity;destinationContext=workload-name|reserved-identity"
+      - "kafka:labelsContext=source_namespace,source_workload,destination_namespace,destination_workload,traffic_direction;sourceContext=workload-name|reserved-identity;destinationContext=workload-name|reserved-identity"
+      - "httpV2:exemplars=true;labelsContext=source_ip,source_namespace,source_workload,destination_ip,destination_namespace,destination_workload,traffic_direction;sourceContext=workload-name|reserved-identity;destinationContext=workload-name|reserved-identity"
+    dashboards:
+      enabled: false
+      namespace: monitoring
+      annotations:
+        grafana_folder: "Hubble"
+
+  ui:
+    enabled: true
+    replicas: 1
+    ingress:
+      enabled: true
+      hosts:
+        - {{ kubernetes_pod_network.hubble_url }} 
+{% if cilium_chart_values.ingress.annotations is defined %}
+      annotations:
+{{ cilium_chart_values.ingress.annotations|indent(8, True) }}
+{% endif%}
+      tls:
+      - secretName: {{ kubernetes_pod_network.hubble_secret }}
+        hosts:
+        - {{ kubernetes_pod_network.hubble_url }}
+    backend:
+      resources:
+        limits:
+          cpu: 60m
+          memory: 300Mi
+        requests:
+          cpu: 20m
+          memory: 64Mi
+    frontend:
+      resources:
+        limits:
+          cpu: 1000m
+          memory: 1024M
+        requests:
+          cpu: 100m
+          memory: 64Mi
+    proxy:
+      resources:
+        limits:
+          cpu: 1000m
+          memory: 1024M
+        requests:
+          cpu: 100m
+          memory: 64Mi
+
+  relay:
+    enabled: true
+    resources:
+      limits:
+        cpu: 100m
+        memory: 500Mi
+
+operator:
+  replicas: 1
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  prometheus:
+    enabled: true
+    serviceMonitor:
+      enabled: false
+
+ipam:
+  mode: "cluster-pool"
+  operator:
+    clusterPoolIPv4PodCIDR: "{{ kubernetes_pod_network.cidr }}"
+    clusterPoolIPv4MaskSize: 24
+    clusterPoolIPv6PodCIDR: "fd00::/104"
+    clusterPoolIPv6MaskSize: 120
+
+resources:
+  limits:
+    cpu: 4000m
+    memory: 4Gi
+  requests:
+    cpu: 100m
+    memory: 512Mi
+
+prometheus:
+  enabled: true
+  # Default port value (9090) needs to be changed since the RHEL cockpit also listens on this port.
+  port: 19090
+  # Configure this serviceMonitor section AFTER Rancher Monitoring is enabled!
+  serviceMonitor:
+    enabled: false
