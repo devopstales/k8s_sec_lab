@@ -14,13 +14,6 @@ ipv4:
 ipv6:
   enabled: true
 
-envoy:
-  enabled: true
-  prometheus:
-    enabled: true
-    serviceMonitor:
-      enabled: false
-
 encryption:
   type: wireguard
   enabled: false
@@ -32,6 +25,10 @@ loadBalancer:
     backend: envoy
 envoy:
   enabled: true
+  prometheus:
+    enabled: true
+    serviceMonitor:
+      enabled: false
 
 # L2 LoadBalancer service
 l2announcements:
