@@ -2,7 +2,7 @@
 # See https://cilium.io/blog/2020/12/11/kube-proxy-free-cve-mitigation for more information.
 kubeProxyReplacement: "strict"
 
-k8sServiceHost: 10.0.2.15
+k8sServiceHost: 192.168.56.12
 k8sServicePort: 6443
 rollOutCiliumPods: true
 priorityClassName: system-cluster-critical
@@ -49,9 +49,12 @@ authentication:
   mode: required
   mutual:
     spire:
-      enabled: true
+      enabled: false
       install:
-        enabled: true
+        enabled: false
+        server:
+          dataStorage:
+            enabled: false
 
 endpointStatus:
   enabled: true
@@ -95,8 +98,6 @@ hubble:
       annotations:
         kubernetes.io/ingress.class: nginx
         cert-manager.io/cluster-issuer: ca-issuer
-        nginx.ingress.kubernetes.io/auth-url: "http://auth-proxy-oauth2-proxy.ingress-system.svc.cluster.local/oauth2/auth"
-        nginx.ingress.kubernetes.io/auth-signin: "https://oauth.k8s.intra/oauth2/start?rd=https%3A%2F%2F$host$request_uri"
       tls:
       - secretName: hubble-ingress-tls
         hosts:
@@ -170,34 +171,13 @@ operator:
     annotations:
       grafana_folder: "cilium"
 
-## for multi-pool
-# tunnel: disabled
-# autoDirectNodeRoutes: true
-# ipv4NativeRoutingCIDR: 10.244.0.0/8
-# bpf:
-#   masquerade: true
-
 ipam:
   mode: "cluster-pool"
   operator:
-    clusterPoolIPv4PodCIDR: "10.43.0.0/16"
+    clusterPoolIPv4PodCIDRList: "10.43.0.0/16"
     clusterPoolIPv4MaskSize: 24
-    clusterPoolIPv6PodCIDR: "fd00::/104"
+    clusterPoolIPv6PodCIDRList: "fd00::/104"
     clusterPoolIPv6MaskSize: 120
-## for multi-pool
-#  mode: multi-pool
-#  operator:
-#    autoCreateCiliumPodIPPools:
-#      default:
-#       	ipv4:
-#          cidrs:
-#            - 10.244.0.0/16
-#          maskSize: 24
-#      other:
-#	       ipv4:
-#          cidrs:
-#            - 10.20.0.0/16
-#          maskSize: 24
 
 resources:
   limits:
