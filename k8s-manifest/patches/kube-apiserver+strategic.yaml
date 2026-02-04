@@ -1,0 +1,10 @@
+spec:
+  containers:
+  - name: kube-apiserver
+    resources:
+      limits:
+        cpu: "2"
+        memory: "6Gi"
+      requests:
+        cpu: "1"
+        memory: "2Gi"

@@ -1,0 +1,136 @@
+apiVersion: kubeadm.k8s.io/v1beta4
+kind: InitConfiguration
+bootstrapTokens:
+- token: "c2t0rj.cofbfnwwrb387890"
+localAPIEndpoint:
+  # local ip and lort
+  advertiseAddress: 192.168.56.10
+  bindPort: 6443
+nodeRegistration:
+  criSocket: unix:///run/containerd/containerd.sock
+  imagePullPolicy: IfNotPresent
+  taints: null
+certificateKey: e6a2eb8581237ab72a4f494f30285ec12a9694d750b9785706a83bfcbbbd2204
+# Path to the folder containing your patch
+#patches:
+#  directory: ./patches
+---
+apiVersion: kubeadm.k8s.io/v1beta4
+kind: ClusterConfiguration
+clusterName: k8s-main
+kubernetesVersion: v1.33.4
+certificatesDir: /etc/kubernetes/pki
+# loadbalancer ip and port
+controlPlaneEndpoint: "192.168.56.10:6443"
+etcd:
+  local:
+    dataDir: /var/lib/etcd
+networking:
+  serviceSubnet: "10.96.0.0/12"
+  podSubnet: "10.244.0.0/16"
+  dnsDomain: "cluster.local"
+apiServer:
+  extraArgs:
+    - name: "authorization-mode"
+      value: "Node,RBAC"
+    # loadbalance etcd cluster
+    - name: "etcd-servers"
+      value: "https://192.168.56.11:2379,https://192.168.56.12:2379,https://192.168.56.13:2379"
+    # OIDC
+    - name: "oidc-client-id"
+      value:  k8s
+    - name: "oidc-issuer-url"
+      value: https://sso.mydomain.intra/auth/realms/k8s
+    - name: "oidc-username-claim"
+      value: email
+    - name: "oidc-groups-claim"
+      value: groups
+    # admission plugins
+    - name: "enable-admission-plugins"
+      value: "NodeRestriction,MutatingAdmissionWebhook,ValidatingAdmissionWebhook"
+    - name: "kubelet-certificate-authority"
+      value: "/etc/kubernetes/pki/ca.crt"
+    - name: "profiling"
+      value: "false"
+    - name: "anonymous-auth"
+      value: "true"
+    - name: "service-node-port-range"
+      value: "30000-50000"
+    # mounts
+    - name: "encryption-provider-config"
+      value: "/etc/kubernetes/etcd-encryption.yaml"
+    - name: "audit-log-path"
+      value: "/var/log/kube-audit/audit.log"
+    - name: "audit-policy-file"
+      value: "/etc/kubernetes/audit-policy.yaml"
+  extraVolumes:
+  - name: "etc-kubernetes-etcd-enc"
+    hostPath: "/etc/kubernetes/etcd-encryption.yaml"
+    mountPath: "/etc/kubernetes/etcd-encryption.yaml"
+    readOnly: true
+    pathType: "File"
+  - name: "audit-config"
+    hostPath: "/etc/kubernetes/audit-policy.yaml"
+    mountPath: "/etc/kubernetes/audit-policy.yaml"
+    readOnly: true
+    pathType: "File"
+  - name: "audit-log"
+    hostPath: "/var/log/kube-audit"
+    mountPath: "/var/log/kube-audit"
+    pathType: "DirectoryOrCreate"
+  - name: "kubernetes-pss"
+    hostPath: "/etc/kubernetes/k8s-pss.yaml"
+    mountPath: "/etc/kubernetes/k8s-pss.yaml"
+    pathType: "File"
+scheduler:
+  extraArgs:
+    - name: "profiling"
+      value: "false"
+controllerManager:
+  extraArgs:
+    - name: "profiling"
+      value: "false"
+---
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+enableServer: true
+failSwapOn: false
+cgroupDriver: "systemd"
+serverTLSBootstrap: true
+rotateCertificates: true
+featureGates:
+    KubeletInUserNamespace: true
+    RotateKubeletServerCertificate: true
+    NodeSwap: true
+seccompDefault: true
+protectKernelDefaults: true
+readOnlyPort: 0
+# host protection
+systemReserved:
+  cpu: "1"
+  memory: "1Gi"
+kubeReserved:
+  cpu: "1"
+  memory: "1Gi"
+evictionSoft:
+  memory.available: "1500Mi"
+  nodefs.available: "15%"
+  nodefs.available: "1m"
+evictionHard:
+  memory.available: "1Gi"
+  nodefs.available: "10%"
+evictionSoftGracePeriod:
+  memory.available: "1m"
+  nodefs.available: "1m"
+evictionPressureTransitionPeriod: "5m0s"
+#---
+#apiVersion: kubeadm.k8s.io/v1beta3
+#kind: JoinConfiguration
+#nodeRegistration:
+#  criSocket: unix:///run/containerd/containerd.sock
+#  imagePullPolicy: IfNotPresent
+#  taints: null
+#discovery:
+#  bootstrapToken:
+#    token: c2t0rj.cofbfnwwrb387890
+
